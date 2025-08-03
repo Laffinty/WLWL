@@ -6,14 +6,14 @@
 
 // --- AST 节点类型枚举 ---
 typedef enum {
-    PROGRAM,
-    LET_STATEMENT,
-    EXPRESSION_STATEMENT,
-    IDENTIFIER,
-    NUMBER_LITERAL,
-    STRING_LITERAL,
-    BOOLEAN_LITERAL,
-    CALL_EXPRESSION, // 所有操作都是调用表达式，例如 +(1, 2)
+    NODE_PROGRAM,            // 修正：添加 NODE_ 前缀
+    NODE_LET_STATEMENT,
+    NODE_EXPRESSION_STATEMENT,
+    NODE_IDENTIFIER,
+    NODE_NUMBER_LITERAL,
+    NODE_STRING_LITERAL,
+    NODE_BOOLEAN_LITERAL,
+    NODE_CALL_EXPRESSION,
 } ASTNodeType;
 
 // --- AST 节点具体结构定义 ---

@@ -1,9 +1,9 @@
 #ifndef WL_PARSER_H
 #define WL_PARSER_H
 
-#include "lexer/lexer.h"
-#include "parser/ast.h"
-#include "core/dyn_array.h"
+#include "../lexer/lexer.h"    // 修正：正确的相对路径
+#include "../parser/ast.h"     // 修正：正确的相对路径
+#include "../core/dyn_array.h" // 修正：正确的相对路径
 
 // The Parser struct now holds the lexer and a DynArray for errors.
 // The errors array is now a struct member, not a pointer, simplifying memory management.

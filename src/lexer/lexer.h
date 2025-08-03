@@ -3,7 +3,7 @@
 
 #include "token.h"
 
-// Lexer 结构体 - 修正：补全所有必要的成员
+// Lexer 结构体
 typedef struct {
     const char* input;      // 输入的源代码字符串
     int position;           // 当前字符位置 (指向当前 ch)
@@ -12,7 +12,8 @@ typedef struct {
 } Lexer;
 
 // --- 公共函数 ---
-Lexer create_lexer(const char* input);
+Lexer* create_lexer(const char* input);  // 修正：返回指针
+void free_lexer(Lexer* l);               // 添加：释放函数
 Token lexer_next_token(Lexer* l);
 
 #endif // LEXER_H

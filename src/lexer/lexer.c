@@ -62,19 +62,29 @@ static char* read_number(Lexer* l) {
 }
 
 static char* read_string(Lexer* l) {
-    int start_pos = l->position + 1;
-    do {
-        read_char(l);
-        // 简单实现，未处理转义字符
-    } while (l->ch != '"' && l->ch != 0);
+    int start_pos = l->position + 1; // Skip opening quote
+    
+    read_char(l); // Move past opening quote
+    
+    while (l->ch != '"' && l->ch != 0) {
+        // Handle escape sequences (basic implementation)
+        if (l->ch == '\\') {
+            read_char(l); // Skip escape character
+            if (l->ch != 0) {
+                read_char(l); // Skip escaped character
+            }
+        } else {
+            read_char(l);
+        }
+    }
     
     int length = l->position - start_pos;
     char* str = malloc(length + 1);
     strncpy(str, l->input + start_pos, length);
     str[length] = '\0';
+    
     return str;
 }
-
 
 static void skip_whitespace(Lexer* l) {
     while (l->ch == ' ' || l->ch == '\t' || l->ch == '\n' || l->ch == '\r') {
@@ -83,14 +93,20 @@ static void skip_whitespace(Lexer* l) {
 }
 
 // --- 公共函数 ---
-Lexer create_lexer(const char* input) {
-    Lexer l;
-    l.input = input;
-    l.position = 0;
-    l.read_position = 0;
-    l.ch = 0;
-    read_char(&l);
+Lexer* create_lexer(const char* input) {
+    Lexer* l = malloc(sizeof(Lexer));
+    l->input = input;
+    l->position = 0;
+    l->read_position = 0;
+    l->ch = 0;
+    read_char(l);
     return l;
+}
+
+void free_lexer(Lexer* l) {
+    if (l) {
+        free(l);
+    }
 }
 
 Token lexer_next_token(Lexer* l) {
@@ -98,19 +114,40 @@ Token lexer_next_token(Lexer* l) {
     skip_whitespace(l);
 
     switch (l->ch) {
-        case '(': tok = create_token(TOKEN_LPAREN, "("); break;
-        case ')': tok = create_token(TOKEN_RPAREN, ")"); break;
-        case '{': tok = create_token(TOKEN_LBRACE, "{"); break;
-        case '}': tok = create_token(TOKEN_RBRACE, "}"); break;
-        case ',': tok = create_token(TOKEN_COMMA, ","); break;
-        case ';': tok = create_token(TOKEN_SEMICOLON, ";"); break;
+        case '(': 
+            tok = create_token(TOKEN_LPAREN, "("); 
+            read_char(l);
+            break;
+        case ')': 
+            tok = create_token(TOKEN_RPAREN, ")"); 
+            read_char(l);
+            break;
+        case '{': 
+            tok = create_token(TOKEN_LBRACE, "{"); 
+            read_char(l);
+            break;
+        case '}': 
+            tok = create_token(TOKEN_RBRACE, "}"); 
+            read_char(l);
+            break;
+        case ',': 
+            tok = create_token(TOKEN_COMMA, ","); 
+            read_char(l);
+            break;
+        case ';': 
+            tok = create_token(TOKEN_SEMICOLON, ";"); 
+            read_char(l);
+            break;
         case '"': {
             char* str_literal = read_string(l);
             tok = create_token(TOKEN_STRING, str_literal);
             free(str_literal);
+            read_char(l); // Skip closing quote
             break;
         }
-        case 0: tok = create_token(TOKEN_EOF, ""); break;
+        case 0: 
+            tok = create_token(TOKEN_EOF, ""); 
+            break;
         default:
             if (is_letter(l->ch) || is_operator_char(l->ch)) {
                 char* literal = read_identifier(l);
@@ -125,9 +162,9 @@ Token lexer_next_token(Lexer* l) {
             } else {
                 char illegal_char[2] = {l->ch, '\0'};
                 tok = create_token(TOKEN_ILLEGAL, illegal_char);
+                read_char(l);
             }
     }
 
-    read_char(l);
     return tok;
 }

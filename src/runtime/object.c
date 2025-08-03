@@ -9,7 +9,7 @@ Object* NULL_OBJ = NULL;
 static Object* allocate_object(ObjectType type, size_t size) {
     Object* obj = malloc(size);
     if (obj == NULL) {
-        log_error("Memory allocation failed in allocate_object.");
+        fprintf(stderr, "Memory allocation failed in allocate_object.\n");
         exit(1);
     }
     obj->type = type;
@@ -18,17 +18,36 @@ static Object* allocate_object(ObjectType type, size_t size) {
 
 // --- 公共函数 ---
 void init_global_objects() {
-    BooleanObject* true_obj = malloc(sizeof(BooleanObject));
+    if (TRUE_OBJ != NULL) {
+        return; // Already initialized
+    }
+    
+    // Create TRUE object
+    BooleanObject* true_obj = (BooleanObject*)malloc(sizeof(BooleanObject));
+    if (!true_obj) {
+        fprintf(stderr, "Failed to allocate TRUE_OBJ\n");
+        exit(1);
+    }
     true_obj->base.type = OBJ_BOOLEAN;
     true_obj->value = true;
     TRUE_OBJ = (Object*)true_obj;
 
-    BooleanObject* false_obj = malloc(sizeof(BooleanObject));
+    // Create FALSE object
+    BooleanObject* false_obj = (BooleanObject*)malloc(sizeof(BooleanObject));
+    if (!false_obj) {
+        fprintf(stderr, "Failed to allocate FALSE_OBJ\n");
+        exit(1);
+    }
     false_obj->base.type = OBJ_BOOLEAN;
     false_obj->value = false;
     FALSE_OBJ = (Object*)false_obj;
 
-    Object* null_obj = malloc(sizeof(Object));
+    // Create NULL object
+    Object* null_obj = (Object*)malloc(sizeof(Object));
+    if (!null_obj) {
+        fprintf(stderr, "Failed to allocate NULL_OBJ\n");
+        exit(1);
+    }
     null_obj->type = OBJ_NULL;
     NULL_OBJ = null_obj;
 }
@@ -100,27 +119,50 @@ void free_object(Object* object) {
 }
 
 void print_object(Object* object) {
-    if (object == NULL) { printf("NULL object pointer\n"); return; }
+    if (object == NULL) { 
+        printf("NULL"); 
+        return; 
+    }
     switch (object->type) {
-        case OBJ_NUMBER: printf("%g", ((NumberObject*)object)->value); break;
-        case OBJ_STRING: printf("\"%s\"", ((StringObject*)object)->value); break;
-        case OBJ_BOOLEAN: printf(((BooleanObject*)object)->value ? "TRUE" : "FALSE"); break;
-        case OBJ_NULL: printf("NULL"); break;
-        case OBJ_RETURN_VALUE: print_object(((ReturnValueObject*)object)->value); break;
-        case OBJ_ERROR: printf("Error: %s", ((ErrorObject*)object)->message); break;
-        case OBJ_BUILTIN: printf("[builtin function]"); break;
+        case OBJ_NUMBER: 
+            printf("%g", ((NumberObject*)object)->value); 
+            break;
+        case OBJ_STRING: 
+            printf("\"%s\"", ((StringObject*)object)->value); 
+            break;
+        case OBJ_BOOLEAN: 
+            printf(((BooleanObject*)object)->value ? "TRUE" : "FALSE"); 
+            break;
+        case OBJ_NULL: 
+            printf("NULL"); 
+            break;
+        case OBJ_RETURN_VALUE: 
+            print_object(((ReturnValueObject*)object)->value); 
+            break;
+        case OBJ_ERROR: 
+            printf("Error: %s", ((ErrorObject*)object)->message); 
+            break;
+        case OBJ_BUILTIN: 
+            printf("[builtin function]"); 
+            break;
         case OBJ_FUNCTION: {
             FunctionObject* fn = (FunctionObject*)object;
             printf("fun(");
-            for (int i = 0; i < da_count(fn->parameters); i++) {
-                ASTNode* param_node = da_get(fn->parameters, i);
-                printf("%s", param_node->identifier.value); // 修正: .value
-                if (i < da_count(fn->parameters) - 1) printf(", ");
+            if (fn->parameters) {
+                for (int i = 0; i < da_count(fn->parameters); i++) {
+                    ASTNode** param_ptr = (ASTNode**)da_get(fn->parameters, i);
+                    if (param_ptr && *param_ptr) {
+                        printf("%s", (*param_ptr)->identifier.value);
+                        if (i < da_count(fn->parameters) - 1) printf(", ");
+                    }
+                }
             }
             printf(") { ... }");
             break;
         }
-        default: printf("Unknown object type: %d\n", object->type); break;
+        default: 
+            printf("Unknown object type: %d", object->type); 
+            break;
     }
 }
 

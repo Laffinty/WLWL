@@ -27,10 +27,9 @@ struct Object;
 #include "runtime/object.h"
 #include "runtime/environment.h"
 #include "runtime/builtins.h"
-// #include "runtime/evaluator.h" // We will remove this to avoid conflicts.
 
 // --- Main Evaluator Function ---
-// The main entry point for evaluation is declared in environment.h now.
-// Object* eval(ASTNode* node, Environment* env);
+// 添加 eval 函数的声明
+Object* eval(struct ASTNode* node, struct Environment* env);
 
 #endif // WL_H

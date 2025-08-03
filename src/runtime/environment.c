@@ -2,6 +2,9 @@
 #include <string.h>
 #include <stdio.h>
 
+// Forward declaration
+static Object* apply_function(Object* fn, DynArray* args);
+
 // Creates a new, empty environment.
 Environment* create_environment() {
     Environment* env = (Environment*)malloc(sizeof(Environment));
@@ -28,7 +31,6 @@ void free_environment(Environment* env) {
     da_free(env->entries);
     free(env);
 }
-
 
 // Gets a value from the environment, checking outer environments if necessary.
 Object* env_get(Environment* env, const char* name) {
@@ -64,11 +66,20 @@ Object* env_set(Environment* env, const char* name, Object* value) {
     return value;
 }
 
+// Apply a function to arguments
+static Object* apply_function(Object* fn, DynArray* args) {
+    if (fn->type == OBJ_BUILTIN) {
+        BuiltinObject* builtin = (BuiltinObject*)fn;
+        return builtin->function(args);
+    }
+    // Future: handle user-defined functions
+    return create_error("not a function: %s", object_type_to_str(fn->type));
+}
 
-// Main evaluation function (moved from evaluator.c)
+// Main evaluation function
 Object* eval(ASTNode* node, Environment* env) {
     if (!node) {
-        return NULL; // Or an error object
+        return NULL;
     }
 
     switch (node->type) {
@@ -78,17 +89,51 @@ Object* eval(ASTNode* node, Environment* env) {
                 ASTNode** stmt_ptr = (ASTNode**)da_get(node->program.statements, i);
                 if (stmt_ptr) {
                     result = eval(*stmt_ptr, env);
-                    // Could add logic for return statements here
+                    if (result && IS_ERROR(result)) {
+                        return result; // Stop on error
+                    }
                 }
             }
             return result;
         }
+        case NODE_EXPRESSION_STATEMENT:
+            return eval(node->expr_stmt.expression, env);
         case NODE_NUMBER_LITERAL:
             return create_number(node->number_literal.value);
-        case NODE_IDENTIFIER:
-            return env_get(env, node->identifier.name);
-        // Add other cases for different node types (IF, LET, CALL, etc.)
+        case NODE_STRING_LITERAL:
+            return create_string(node->string_literal.value);
+        case NODE_IDENTIFIER: {
+            Object* val = env_get(env, node->identifier.value);
+            if (!val) {
+                return create_error("identifier not found: %s", node->identifier.value);
+            }
+            return val;
+        }
+        case NODE_CALL_EXPRESSION: {
+            Object* function = eval(node->call_expr.function, env);
+            if (IS_ERROR(function)) {
+                return function;
+            }
+            
+            // Evaluate arguments
+            DynArray* args = da_create(sizeof(Object*));
+            for (int i = 0; i < da_count(node->call_expr.arguments); i++) {
+                ASTNode** arg_ptr = (ASTNode**)da_get(node->call_expr.arguments, i);
+                if (arg_ptr) {
+                    Object* evaluated = eval(*arg_ptr, env);
+                    if (IS_ERROR(evaluated)) {
+                        da_free(args);
+                        return evaluated;
+                    }
+                    da_push(args, &evaluated);
+                }
+            }
+            
+            Object* result = apply_function(function, args);
+            da_free(args);
+            return result;
+        }
         default:
-            return create_error("Unknown node type: %d", node->type);
+            return create_error("unknown node type: %d", node->type);
     }
 }
