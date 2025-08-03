@@ -46,24 +46,52 @@ Object* env_get(Environment* env, const char* name) {
     return NULL;
 }
 
-// Sets a value in the environment.
+// Sets a value in the environment (legacy function for builtin registration).
 Object* env_set(Environment* env, const char* name, Object* value) {
-    // First, check if the variable already exists and update it.
+    return env_define(env, name, value, true); // Default to mutable for compatibility
+}
+
+// Define a new variable with mutability flag
+Object* env_define(Environment* env, const char* name, Object* value, bool is_mutable) {
+    // Check if variable already exists in current scope
     for (int i = 0; i < da_count(env->entries); i++) {
         EnvEntry* entry = (EnvEntry*)da_get(env->entries, i);
         if (strcmp(entry->name, name) == 0) {
-            entry->value = value; // Update existing entry
+            // Variable already exists - this is an error for redefinition
+            return create_error("identifier already declared: %s", name);
+        }
+    }
+    
+    // Create new entry
+    EnvEntry new_entry;
+    new_entry.name = strdup(name);
+    new_entry.value = value;
+    new_entry.is_mutable = is_mutable;
+    da_push(env->entries, &new_entry);
+    
+    return value;
+}
+
+// Assign to an existing variable (for SET statements)
+Object* env_assign(Environment* env, const char* name, Object* value) {
+    // Search in current environment first
+    for (int i = 0; i < da_count(env->entries); i++) {
+        EnvEntry* entry = (EnvEntry*)da_get(env->entries, i);
+        if (strcmp(entry->name, name) == 0) {
+            if (!entry->is_mutable) {
+                return create_error("cannot assign to immutable variable: %s", name);
+            }
+            entry->value = value;
             return value;
         }
     }
     
-    // If not, create a new entry.
-    EnvEntry new_entry;
-    new_entry.name = strdup(name);
-    new_entry.value = value;
-    da_push(env->entries, &new_entry);
+    // Search in outer environments
+    if (env->outer != NULL) {
+        return env_assign(env->outer, name, value);
+    }
     
-    return value;
+    return create_error("identifier not found: %s", name);
 }
 
 // Apply a function to arguments
@@ -96,12 +124,35 @@ Object* eval(ASTNode* node, Environment* env) {
             }
             return result;
         }
+        case NODE_LET_STATEMENT: {
+            Object* val = eval(node->let_stmt.value, env);
+            if (IS_ERROR(val)) {
+                return val;
+            }
+            return env_define(env, node->let_stmt.name->identifier.value, val, false); // immutable
+        }
+        case NODE_VAR_STATEMENT: {
+            Object* val = eval(node->var_stmt.value, env);
+            if (IS_ERROR(val)) {
+                return val;
+            }
+            return env_define(env, node->var_stmt.name->identifier.value, val, true); // mutable
+        }
+        case NODE_SET_STATEMENT: {
+            Object* val = eval(node->set_stmt.value, env);
+            if (IS_ERROR(val)) {
+                return val;
+            }
+            return env_assign(env, node->set_stmt.name->identifier.value, val);
+        }
         case NODE_EXPRESSION_STATEMENT:
             return eval(node->expr_stmt.expression, env);
         case NODE_NUMBER_LITERAL:
             return create_number(node->number_literal.value);
         case NODE_STRING_LITERAL:
             return create_string(node->string_literal.value);
+        case NODE_BOOLEAN_LITERAL:
+            return node->boolean_literal.value ? TRUE_OBJ : FALSE_OBJ;
         case NODE_IDENTIFIER: {
             Object* val = env_get(env, node->identifier.value);
             if (!val) {

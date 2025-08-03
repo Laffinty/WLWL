@@ -6,8 +6,10 @@
 
 // --- AST 节点类型枚举 ---
 typedef enum {
-    NODE_PROGRAM,            // 修正：添加 NODE_ 前缀
-    NODE_LET_STATEMENT,
+    NODE_PROGRAM,
+    NODE_LET_STATEMENT,       // LET(name, value);
+    NODE_VAR_STATEMENT,       // VAR(name, value);
+    NODE_SET_STATEMENT,       // SET(name, value);
     NODE_EXPRESSION_STATEMENT,
     NODE_IDENTIFIER,
     NODE_NUMBER_LITERAL,
@@ -27,6 +29,16 @@ typedef struct {
     struct ASTNode* name; // Identifier
     struct ASTNode* value;
 } LetStatementNode;
+
+typedef struct {
+    struct ASTNode* name; // Identifier
+    struct ASTNode* value;
+} VarStatementNode;
+
+typedef struct {
+    struct ASTNode* name; // Identifier
+    struct ASTNode* value;
+} SetStatementNode;
 
 typedef struct {
     struct ASTNode* expression;
@@ -60,6 +72,8 @@ typedef struct ASTNode {
     union {
         ProgramNode             program;
         LetStatementNode        let_stmt;
+        VarStatementNode        var_stmt;
+        SetStatementNode        set_stmt;
         ExpressionStatementNode expr_stmt;
         IdentifierNode          identifier;
         NumberLiteralNode       number_literal;

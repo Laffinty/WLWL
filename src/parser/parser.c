@@ -5,11 +5,15 @@
 
 // Forward declarations for static functions
 static ASTNode* parse_statement(Parser* p);
+static ASTNode* parse_let_statement(Parser* p);
+static ASTNode* parse_var_statement(Parser* p);
+static ASTNode* parse_set_statement(Parser* p);
 static ASTNode* parse_expression_statement(Parser* p);
 static ASTNode* parse_expression(Parser* p);
 static ASTNode* parse_identifier(Parser* p);
 static ASTNode* parse_number_literal(Parser* p);
 static ASTNode* parse_string_literal(Parser* p);
+static ASTNode* parse_boolean_literal(Parser* p);
 static ASTNode* parse_call_expression(Parser* p, ASTNode* function);
 static DynArray* parse_expression_list(Parser* p, TokenType end_token);
 
@@ -93,8 +97,133 @@ ASTNode* parse_program(Parser* p) {
 
 // Parse a statement
 static ASTNode* parse_statement(Parser* p) {
-    // For now, we only have expression statements
-    return parse_expression_statement(p);
+    switch (p->current_token.type) {
+        case TOKEN_LET:
+            return parse_let_statement(p);
+        case TOKEN_VAR:
+            return parse_var_statement(p);
+        case TOKEN_SET:
+            return parse_set_statement(p);
+        default:
+            return parse_expression_statement(p);
+    }
+}
+
+// Parse LET statement: LET(name, value);
+static ASTNode* parse_let_statement(Parser* p) {
+    ASTNode* stmt = (ASTNode*)malloc(sizeof(ASTNode));
+    stmt->type = NODE_LET_STATEMENT;
+    
+    if (!expect_peek(p, TOKEN_LPAREN)) {
+        free(stmt);
+        return NULL;
+    }
+    
+    if (!expect_peek(p, TOKEN_IDENTIFIER)) {
+        free(stmt);
+        return NULL;
+    }
+    
+    stmt->let_stmt.name = parse_identifier(p);
+    
+    if (!expect_peek(p, TOKEN_COMMA)) {
+        free_ast_node(stmt->let_stmt.name);
+        free(stmt);
+        return NULL;
+    }
+    
+    next_token(p);
+    stmt->let_stmt.value = parse_expression(p);
+    
+    if (!expect_peek(p, TOKEN_RPAREN)) {
+        free_ast_node(stmt);
+        return NULL;
+    }
+    
+    // Consume semicolon if present
+    if (peek_token_is(p, TOKEN_SEMICOLON)) {
+        next_token(p);
+    }
+    
+    return stmt;
+}
+
+// Parse VAR statement: VAR(name, value);
+static ASTNode* parse_var_statement(Parser* p) {
+    ASTNode* stmt = (ASTNode*)malloc(sizeof(ASTNode));
+    stmt->type = NODE_VAR_STATEMENT;
+    
+    if (!expect_peek(p, TOKEN_LPAREN)) {
+        free(stmt);
+        return NULL;
+    }
+    
+    if (!expect_peek(p, TOKEN_IDENTIFIER)) {
+        free(stmt);
+        return NULL;
+    }
+    
+    stmt->var_stmt.name = parse_identifier(p);
+    
+    if (!expect_peek(p, TOKEN_COMMA)) {
+        free_ast_node(stmt->var_stmt.name);
+        free(stmt);
+        return NULL;
+    }
+    
+    next_token(p);
+    stmt->var_stmt.value = parse_expression(p);
+    
+    if (!expect_peek(p, TOKEN_RPAREN)) {
+        free_ast_node(stmt);
+        return NULL;
+    }
+    
+    // Consume semicolon if present
+    if (peek_token_is(p, TOKEN_SEMICOLON)) {
+        next_token(p);
+    }
+    
+    return stmt;
+}
+
+// Parse SET statement: SET(name, value);
+static ASTNode* parse_set_statement(Parser* p) {
+    ASTNode* stmt = (ASTNode*)malloc(sizeof(ASTNode));
+    stmt->type = NODE_SET_STATEMENT;
+    
+    if (!expect_peek(p, TOKEN_LPAREN)) {
+        free(stmt);
+        return NULL;
+    }
+    
+    if (!expect_peek(p, TOKEN_IDENTIFIER)) {
+        free(stmt);
+        return NULL;
+    }
+    
+    stmt->set_stmt.name = parse_identifier(p);
+    
+    if (!expect_peek(p, TOKEN_COMMA)) {
+        free_ast_node(stmt->set_stmt.name);
+        free(stmt);
+        return NULL;
+    }
+    
+    next_token(p);
+    stmt->set_stmt.value = parse_expression(p);
+    
+    if (!expect_peek(p, TOKEN_RPAREN)) {
+        free_ast_node(stmt);
+        return NULL;
+    }
+    
+    // Consume semicolon if present
+    if (peek_token_is(p, TOKEN_SEMICOLON)) {
+        next_token(p);
+    }
+    
+    return stmt;
 }
 
 // Parse an expression statement
@@ -124,6 +253,15 @@ static ASTNode* parse_expression(Parser* p) {
             break;
         case TOKEN_STRING:
             left = parse_string_literal(p);
+            break;
+        case TOKEN_TRUE:
+        case TOKEN_FALSE:
+            left = parse_boolean_literal(p);
+            break;
+        case TOKEN_NULL:
+            left = (ASTNode*)malloc(sizeof(ASTNode));
+            left->type = NODE_IDENTIFIER;
+            left->identifier.value = strdup("NULL");
             break;
         default:
             char error_msg[256];
@@ -163,6 +301,14 @@ static ASTNode* parse_string_literal(Parser* p) {
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     node->type = NODE_STRING_LITERAL;
     node->string_literal.value = strdup(p->current_token.literal);
+    return node;
+}
+
+// Parse a boolean literal
+static ASTNode* parse_boolean_literal(Parser* p) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = NODE_BOOLEAN_LITERAL;
+    node->boolean_literal.value = (strcmp(p->current_token.literal, "TRUE") == 0);
     return node;
 }
 

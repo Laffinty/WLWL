@@ -4,7 +4,7 @@ void free_ast_node(ASTNode *node) {
     if (node == NULL) return;
 
     switch (node->type) {
-        case NODE_PROGRAM:  // 修正：使用 NODE_ 前缀
+        case NODE_PROGRAM:
             for (int i = 0; i < da_count(node->program.statements); i++) {
                 ASTNode** stmt_ptr = (ASTNode**)da_get(node->program.statements, i);
                 if (stmt_ptr) {
@@ -16,6 +16,14 @@ void free_ast_node(ASTNode *node) {
         case NODE_LET_STATEMENT:
             free_ast_node(node->let_stmt.name);
             free_ast_node(node->let_stmt.value);
+            break;
+        case NODE_VAR_STATEMENT:
+            free_ast_node(node->var_stmt.name);
+            free_ast_node(node->var_stmt.value);
+            break;
+        case NODE_SET_STATEMENT:
+            free_ast_node(node->set_stmt.name);
+            free_ast_node(node->set_stmt.value);
             break;
         case NODE_EXPRESSION_STATEMENT:
             free_ast_node(node->expr_stmt.expression);

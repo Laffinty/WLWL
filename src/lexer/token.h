@@ -14,8 +14,9 @@ typedef enum {
     TOKEN_STRING,     // "hello world"
 
     // 关键字
-    TOKEN_LET,
-    TOKEN_VAR,
+    TOKEN_LET,        // LET - 不可变变量声明
+    TOKEN_VAR,        // VAR - 可变变量声明
+    TOKEN_SET,        // SET - 变量重新赋值
     TOKEN_FUN,
     TOKEN_TRUE,
     TOKEN_FALSE,
