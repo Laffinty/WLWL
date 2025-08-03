@@ -1,33 +1,115 @@
-@echo off
-echo --- WLWL Interpreter Build Script (Fixed) ---
+# WLWL
 
-set COMPILER=gcc
-set SOURCES=src/main.c src/core/logger.c src/core/dyn_array.c src/lexer/token.c src/lexer/lexer.c src/parser/ast.c src/parser/parser.c src/runtime/object.c src/runtime/environment.c src/runtime/builtins.c
-set OUTPUT=build/wl.exe
-set FLAGS=-o
-set CFLAGS=-Isrc -Wall -Wextra
+## 1. 项目介绍
 
-if not exist build mkdir build
+WLWL是一款实验性的、以函数式为核心设计原则的编程语言。它的目标是构建一种语法结构清晰，可以无缝编译为Web标准（HTML/CSS/JavaScript）的语言。
 
-echo Compiler: %COMPILER%
-echo Sources: %SOURCES%
-echo Output: %OUTPUT%
-echo Flags: %CFLAGS%
+其核心设计原则包括：
+* **函数式优先**：所有操作（包括算术、逻辑和声明）都使用前缀函数调用形式，例如 `+(1, 2)`。
+* **一切皆表达式**：所有语句都有返回值。
+* **AI 可读性**：清晰、无歧义的语法，为AI辅助编程和代码生成而优化。
+* **Web 友好**：原生支持HTML、CSS和DOM操作的语法，旨在成为构建Web应用的强大工具。
+* **语法严格性**：每个语句必须以分号 `;` 结尾，且不依赖缩进区分代码块。
 
-echo Compiling and linking...
-%COMPILER% %CFLAGS% %FLAGS% %OUTPUT% %SOURCES%
+本项目是该语言的一个早期C语言实现，包含了一个交互式解释器（REPL），用于执行基本的WLWL代码。
 
-if %errorlevel% neq 0 (
-    echo.
-    echo ********************
-    echo * BUILD FAILED!    *
-    echo ********************
-    exit /b 1
-)
+## 2. 编译与测试
 
-echo.
-echo ********************
-echo * BUILD SUCCEEDED! *
-echo ********************
-echo.
-echo You can now run: build/wl.exe
+目前需要用cygwin安装gcc-core执行编译。
+
+### 编译步骤
+
+1.  **编译**：
+    * 打开命令行，进入项目根目录。
+    * 执行以下命令：
+        ```bash
+        build.bat
+        ```
+    * 该脚本会创建一个 `build` 目录，并将编译后的可执行文件 `wlwl.exe` 放置其中。
+
+2.  **调试模式编译**：
+    * 如果需要编译为调试模式（会输出更多过程信息），请使用以下命令：
+        ```bash
+        build.bat debug
+        ```
+
+### 运行与测试
+
+编译成功后，可以通过以下方式启动 **REPL (Read-Eval-Print-Loop)** 环境：
+
+```bash
+build/wlwl.exe
+```
+
+启动后，您可以在 `>>` 提示符后输入WLWL代码并立即看到结果。
+
+**测试示例**：
+在REPL中输入以下代码（每行以回车结束）：
+```wlwl
+>> +(1, 2, 3);
+Result: 6
+>> -(10, 4);
+Result: 6
+>> CONCAT("Hello, ", "World!");
+Result: "Hello, World!"
+>> PRINT("Hello from WLWL!");
+Result: NULL
+```
+
+## 3. 功能实现对照表
+
+下表详细列出了 `WLWL设计规范.md` 中定义的各项功能及其在当前C语言实现中的完成状态。
+
+| 模块 | 功能点 | 规范定义 | 当前实现状态 |
+| :--- | :--- | :--- | :--- |
+| **核心语法** | **语句终结符** | 每个语句必须以分号 `;` 结尾。 | ✅ **已实现** |
+| | **前缀表达式** | 所有操作均为函数调用 `FUNC(...)`。 | ✅ **已实现** |
+| **数据类型** | **基础类型** | Number, String, Boolean, Null。 | ✅ **已实现** |
+| | **复合类型** | Array, Object, Function。 | ❌ **未实现** |
+| **变量系统** | **不可变变量 `LET`** | `LET(name, value);` | ❌ **未实现** |
+| | **可变变量 `VAR`** | `VAR(name, value);` | ❌ **未实现** |
+| | **重新赋值 `SET`** | `SET(name, new_value);` | ❌ **未实现** |
+| **运算符** | **算术运算符 `+ - * /`** | `+(a, b, ...)` 等形式。 | ✅ **已实现** |
+| | **取模 `%` 和幂 `^`** | `%(a, b)` 和 `^(a, b)` | ❌ **未实现** |
+| | **比较运算符 `= >`** | `=(a, b)` 和 `>(a, b)` | ✅ **已实现** |
+| | **比较运算符 `!= < >= <=`** | `!=(a,b)` 等 | ❌ **未实现** |
+| | **逻辑运算符 `AND OR NOT`** | `AND(a, b)` 等 | ❌ **未实现** |
+| | **字符串运算符 `CONCAT`** | `CONCAT(s1, s2, ...)` | ✅ **已实现** |
+| | **字符串运算符 `SLICE`, `LENGTH`** | `SLICE(...)`, `LENGTH(...)` | ❌ **未实现** |
+| **控制流** | **条件语句 `IF`, `COND`** | `IF(cond, true_branch, ...)` | ❌ **未实现** |
+| | **循环语句 `WHILE`, `FOR`** | `WHILE(cond, body)` 等 | ❌ **未实现** |
+| **函数** | **函数定义 `FUN`** | `FUN(name(params...), (body))` | ❌ **未实现** |
+| | **函数调用** | `func_name(args...)` | ✅ **已实现** (仅限内置函数) |
+| | **匿名函数 `LAMBDA`** | `LAMBDA((params...), (body))` | ❌ **未实现** |
+| **Web API** | **HTML/CSS/DOM 系统** | `HTML(...)`, `CSS(...)`, `DOM.QUERY(...)` 等 | ❌ **未实现** |
+| **标准库** | **输入输出 `PRINT`** | `PRINT(value)` | ✅ **已实现** |
+| | **输入输出 `INPUT`** | `INPUT(prompt)` | ❌ **未实现** |
+| | **其他标准库 `MATH`, `ARRAY`** | `MATH.ABS(x)` 等 | ❌ **未实现** |
+
+## 4. 项目结构概览
+
+```
+.
+├── build.bat         # Windows 构建脚本
+├── LICENSE           # 项目许可证 (GPL-3.0)
+├── README.md         # (本文档)
+├── src
+│   ├── core          # 核心模块 (动态数组、日志、公共头文件)
+│   ├── lexer         # 词法分析器 (Token, Lexer)
+│   ├── parser        # 语法分析器 (AST, Parser)
+│   ├── runtime       # 运行时 (对象系统, 环境, 内置函数, 求值器)
+│   ├── main.c        # 主入口，实现 REPL
+│   └── wl.h          # 项目主头文件
+└── WLWL设计规范.md   # 语言的官方设计和宪法文档
+```
+
+## 5. 后续开发路线
+
+根据 `WLWL设计规范.md` 的路线图，当前项目处于 **“阶段一：核心语言实现”** 的早期。
+
+下一步需要优先实现以下核心功能：
+1.  **变量系统**：完整实现 `LET` 和 `VAR` 关键字的解析与求值。
+2.  **作用域与环境**：增强 `Environment` 使其能处理嵌套作用域。
+3.  **用户自定义函数**：实现 `FUN` 关键字，支持函数的定义、闭包和调用。
+4.  **控制流**：实现 `IF` 条件判断语句。
+5.  **完整的布尔逻辑**：实现 `TRUE`, `FALSE` 以及相关的比较和逻辑运算符。
