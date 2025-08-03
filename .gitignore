@@ -1,0 +1,24 @@
+# Created by Gemini for the WLWL Interpreter Project
+
+# --- Build artifacts ---
+# Ignore the entire build directory where executables and object files are stored.
+/build/
+
+# Ignore object files from any directory.
+*.o
+*.obj
+
+# Ignore the final executable if it's somehow created outside the build dir.
+*.exe
+
+# --- IDE and Editor specific files ---
+# Visual Studio Code
+.vscode/
+
+# JetBrains IDEs (CLion, etc.)
+.idea/
+
+# --- Other ---
+# Ignore DS_Store files created by macOS
+.DS_Store
+

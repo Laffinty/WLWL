@@ -1,0 +1,26 @@
+#ifndef ENVIRONMENT_H
+#define ENVIRONMENT_H
+
+#include "../core/dyn_array.h" // 修正：自包含依赖
+#include "object.h"            // 修正：自包含依赖
+
+// 环境中的条目
+typedef struct {
+    char* name;
+    Object* value;
+} EnvEntry;
+
+// 环境结构体
+typedef struct Environment {
+    struct Environment* outer;
+    DynArray* entries;
+} Environment;
+
+// --- 公共函数 ---
+Environment* create_environment();
+Environment* create_enclosed_environment(Environment* outer);
+void free_environment(Environment* env);
+Object* env_get(Environment* env, const char* name);
+Object* env_set(Environment* env, const char* name, Object* value);
+
+#endif // ENVIRONMENT_H
