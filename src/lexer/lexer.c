@@ -15,6 +15,7 @@ static bool is_operator_char(char ch) {
 }
 
 static void read_char(Lexer* l) {
+    // The comparison is now between two size_t types, resolving the warning.
     if (l->read_position >= strlen(l->input)) {
         l->ch = 0; // EOF
     } else {
@@ -24,19 +25,14 @@ static void read_char(Lexer* l) {
     l->read_position += 1;
 }
 
-static char peek_char(Lexer* l) {
-    if (l->read_position >= strlen(l->input)) {
-        return 0;
-    }
-    return l->input[l->read_position];
-}
+// The 'peek_char' function was removed as it was defined but not used.
 
 static char* read_identifier(Lexer* l) {
-    int start_pos = l->position;
+    size_t start_pos = l->position; // Use size_t for consistency
     while (is_letter(l->ch) || is_digit(l->ch) || is_operator_char(l->ch)) {
         read_char(l);
     }
-    int length = l->position - start_pos;
+    size_t length = l->position - start_pos; // length is also size_t
     char* ident = malloc(length + 1);
     strncpy(ident, l->input + start_pos, length);
     ident[length] = '\0';
@@ -44,7 +40,7 @@ static char* read_identifier(Lexer* l) {
 }
 
 static char* read_number(Lexer* l) {
-    int start_pos = l->position;
+    size_t start_pos = l->position; // Use size_t
     while (is_digit(l->ch)) {
         read_char(l);
     }
@@ -54,7 +50,7 @@ static char* read_number(Lexer* l) {
             read_char(l);
         }
     }
-    int length = l->position - start_pos;
+    size_t length = l->position - start_pos; // Use size_t
     char* num = malloc(length + 1);
     strncpy(num, l->input + start_pos, length);
     num[length] = '\0';
@@ -62,7 +58,7 @@ static char* read_number(Lexer* l) {
 }
 
 static char* read_string(Lexer* l) {
-    int start_pos = l->position + 1; // Skip opening quote
+    size_t start_pos = l->position + 1; // Skip opening quote, use size_t
     
     read_char(l); // Move past opening quote
     
@@ -78,7 +74,7 @@ static char* read_string(Lexer* l) {
         }
     }
     
-    int length = l->position - start_pos;
+    size_t length = l->position - start_pos; // Use size_t
     char* str = malloc(length + 1);
     strncpy(str, l->input + start_pos, length);
     str[length] = '\0';
