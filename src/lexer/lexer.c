@@ -25,6 +25,14 @@ static void read_char(Lexer* l) {
     l->read_position += 1;
 }
 
+static char peek_char(Lexer* l) {
+    if (l->read_position >= strlen(l->input)) {
+        return 0;
+    } else {
+        return l->input[l->read_position];
+    }
+}
+
 static char* read_identifier(Lexer* l) {
     size_t start_pos = l->position; // Use size_t for consistency
     while (is_letter(l->ch) || is_digit(l->ch) || is_operator_char(l->ch)) {
@@ -86,6 +94,28 @@ static void skip_whitespace(Lexer* l) {
     }
 }
 
+// 新增：跳过单行注释
+static void skip_line_comment(Lexer* l) {
+    while (l->ch != '\n' && l->ch != 0) {
+        read_char(l);
+    }
+}
+
+// 新增：跳过多行注释
+static void skip_block_comment(Lexer* l) {
+    read_char(l); // Skip '/'
+    read_char(l); // Skip '*'
+    
+    while (l->ch != 0) {
+        if (l->ch == '*' && peek_char(l) == '/') {
+            read_char(l); // Skip '*'
+            read_char(l); // Skip '/'
+            break;
+        }
+        read_char(l);
+    }
+}
+
 // --- 公共函数 ---
 Lexer* create_lexer(const char* input) {
     Lexer* l = malloc(sizeof(Lexer));
@@ -106,6 +136,21 @@ void free_lexer(Lexer* l) {
 Token lexer_next_token(Lexer* l) {
     Token tok;
     skip_whitespace(l);
+
+    // 处理注释
+    if (l->ch == '/') {
+        char next = peek_char(l);
+        if (next == '/') {
+            // 单行注释
+            skip_line_comment(l);
+            return lexer_next_token(l); // 递归调用获取下一个有效token
+        } else if (next == '*') {
+            // 多行注释
+            skip_block_comment(l);
+            return lexer_next_token(l); // 递归调用获取下一个有效token
+        }
+        // 如果不是注释，继续处理为普通字符
+    }
 
     switch (l->ch) {
         case '(': 
