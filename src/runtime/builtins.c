@@ -142,37 +142,65 @@ static Object* builtin_gt(DynArray* args) {
     return ((NumberObject*)left)->value > ((NumberObject*)right)->value ? TRUE_OBJ : FALSE_OBJ;
 }
 
-// Built-in function for string concatenation.
+// 辅助函数：将对象转换为字符串表示
+static char* object_to_string(Object* obj) {
+    if (!obj) return strdup("NULL");
+    
+    switch (obj->type) {
+        case OBJ_STRING:
+            return strdup(((StringObject*)obj)->value);
+        case OBJ_NUMBER: {
+            char buffer[64];
+            double val = ((NumberObject*)obj)->value;
+            // 如果是整数，不显示小数点
+            if (val == (long)val) {
+                snprintf(buffer, sizeof(buffer), "%.0f", val);
+            } else {
+                snprintf(buffer, sizeof(buffer), "%g", val);
+            }
+            return strdup(buffer);
+        }
+        case OBJ_BOOLEAN:
+            return strdup(((BooleanObject*)obj)->value ? "TRUE" : "FALSE");
+        case OBJ_NULL:
+            return strdup("NULL");
+        default:
+            return strdup("[object]");
+    }
+}
+
+// Built-in function for string concatenation - 修复版本，支持自动类型转换
 static Object* builtin_concat(DynArray* args) {
     if (da_count(args) == 0) {
         return create_string("");
     }
     
-    // Calculate total length needed
+    // 计算总长度
     int total_len = 0;
+    char** string_args = malloc(da_count(args) * sizeof(char*));
+    
     for (int i = 0; i < da_count(args); i++) {
         Object** arg_ptr = (Object**)da_get(args, i);
-        if (!arg_ptr) continue;
+        if (!arg_ptr) {
+            string_args[i] = strdup("");
+            continue;
+        }
         
         Object* arg = *arg_ptr;
-        if (arg->type != OBJ_STRING) {
-            return create_error("argument to 'CONCAT' must be STRING, got %s", object_type_to_str(arg->type));
-        }
-        total_len += strlen(((StringObject*)arg)->value);
+        string_args[i] = object_to_string(arg);
+        total_len += strlen(string_args[i]);
     }
     
-    // Allocate result string
+    // 分配结果字符串
     char* result = malloc(total_len + 1);
     result[0] = '\0';
     
-    // Concatenate all strings
+    // 连接所有字符串
     for (int i = 0; i < da_count(args); i++) {
-        Object** arg_ptr = (Object**)da_get(args, i);
-        if (arg_ptr) {
-            Object* arg = *arg_ptr;
-            strcat(result, ((StringObject*)arg)->value);
-        }
+        strcat(result, string_args[i]);
+        free(string_args[i]);
     }
+    free(string_args);
     
     Object* str_obj = create_string(result);
     free(result);
