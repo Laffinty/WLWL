@@ -25,8 +25,6 @@ static void read_char(Lexer* l) {
     l->read_position += 1;
 }
 
-// The 'peek_char' function was removed as it was defined but not used.
-
 static char* read_identifier(Lexer* l) {
     size_t start_pos = l->position; // Use size_t for consistency
     while (is_letter(l->ch) || is_digit(l->ch) || is_operator_char(l->ch)) {
@@ -137,7 +135,7 @@ Token lexer_next_token(Lexer* l) {
         case '"': {
             char* str_literal = read_string(l);
             tok = create_token(TOKEN_STRING, str_literal);
-            free(str_literal);
+            free(str_literal); // 释放临时字符串
             read_char(l); // Skip closing quote
             break;
         }
@@ -148,12 +146,12 @@ Token lexer_next_token(Lexer* l) {
             if (is_letter(l->ch) || is_operator_char(l->ch)) {
                 char* literal = read_identifier(l);
                 tok.type = lookup_identifier(literal);
-                tok.literal = literal; // lookup_identifier doesn't copy
+                tok.literal = literal; // 直接使用，不需要再次strdup
                 return tok; // 直接返回，避免再次前进
             } else if (is_digit(l->ch)) {
                 char* literal = read_number(l);
                 tok = create_token(TOKEN_NUMBER, literal);
-                free(literal);
+                free(literal); // 释放临时字符串
                 return tok; // 直接返回
             } else {
                 char illegal_char[2] = {l->ch, '\0'};

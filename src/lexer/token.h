@@ -43,6 +43,7 @@ typedef struct {
 // --- 辅助函数 ---
 const char* token_type_to_str(TokenType type);
 Token create_token(TokenType type, const char* literal);
+void free_token(Token* token);  // 新增：释放Token内存
 TokenType lookup_identifier(const char* ident);
 
 #endif // TOKEN_H

@@ -49,8 +49,12 @@ static bool expect_peek(Parser* p, TokenType expected) {
     }
 }
 
-// Advances the tokens.
+// Advances the tokens - 修复：添加Token内存管理
 void next_token(Parser* p) {
+    // 释放当前token的内存
+    free_token(&p->current_token);
+    
+    // 移动token
     p->current_token = p->peek_token;
     p->peek_token = lexer_next_token(p->l);
 }
@@ -61,6 +65,10 @@ Parser create_parser(Lexer* l) {
     p.l = l;
     da_init(&p.errors, sizeof(char*));
 
+    // 初始化token为空，避免释放未初始化的内存
+    p.current_token.literal = NULL;
+    p.peek_token.literal = NULL;
+
     // Read two tokens, so current_token and peek_token are both set
     next_token(&p);
     next_token(&p);
@@ -70,6 +78,11 @@ Parser create_parser(Lexer* l) {
 
 // Frees the parser and its error messages.
 void free_parser(Parser* p) {
+    // 释放token内存
+    free_token(&p->current_token);
+    free_token(&p->peek_token);
+    
+    // 释放错误消息
     for (int i = 0; i < da_count(&p->errors); i++) {
         char** error_ptr = (char**)da_get(&p->errors, i);
         if (error_ptr) {
