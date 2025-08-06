@@ -2,10 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 
-// Forward declaration
 static Object* apply_function(Object* fn, DynArray* args);
 
-// 新增：判断对象是否为"真"（WLWL的真值性规则）
 static bool is_truthy(Object* obj) {
     if (!obj || obj == NULL_OBJ) {
         return false;
@@ -22,7 +20,6 @@ static bool is_truthy(Object* obj) {
     return true;
 }
 
-// Creates a new, empty environment.
 Environment* create_environment() {
     Environment* env = (Environment*)malloc(sizeof(Environment));
     env->entries = da_create(sizeof(EnvEntry));
@@ -30,26 +27,22 @@ Environment* create_environment() {
     return env;
 }
 
-// Creates a new environment enclosed by an outer one.
 Environment* create_enclosed_environment(Environment* outer) {
     Environment* env = create_environment();
     env->outer = outer;
     return env;
 }
 
-// Frees an environment and all its entries.
 void free_environment(Environment* env) {
     if (!env) return;
     for (int i = 0; i < da_count(env->entries); i++) {
         EnvEntry* entry = (EnvEntry*)da_get(env->entries, i);
         free(entry->name);
-        // Note: We don't free entry->value here as its ownership is managed elsewhere
     }
     da_free(env->entries);
     free(env);
 }
 
-// Gets a value from the environment, checking outer environments if necessary.
 Object* env_get(Environment* env, const char* name) {
     for (int i = 0; i < da_count(env->entries); i++) {
         EnvEntry* entry = (EnvEntry*)da_get(env->entries, i);
@@ -63,23 +56,18 @@ Object* env_get(Environment* env, const char* name) {
     return NULL;
 }
 
-// Sets a value in the environment (legacy function for builtin registration).
 Object* env_set(Environment* env, const char* name, Object* value) {
-    return env_define(env, name, value, true); // Default to mutable for compatibility
+    return env_define(env, name, value, true);
 }
 
-// Define a new variable with mutability flag
 Object* env_define(Environment* env, const char* name, Object* value, bool is_mutable) {
-    // Check if variable already exists in current scope
     for (int i = 0; i < da_count(env->entries); i++) {
         EnvEntry* entry = (EnvEntry*)da_get(env->entries, i);
         if (strcmp(entry->name, name) == 0) {
-            // Variable already exists - this is an error for redefinition
             return create_error("identifier already declared: %s", name);
         }
     }
     
-    // Create new entry
     EnvEntry new_entry;
     new_entry.name = strdup(name);
     new_entry.value = value;
@@ -89,9 +77,7 @@ Object* env_define(Environment* env, const char* name, Object* value, bool is_mu
     return value;
 }
 
-// Assign to an existing variable (for SET statements)
 Object* env_assign(Environment* env, const char* name, Object* value) {
-    // Search in current environment first
     for (int i = 0; i < da_count(env->entries); i++) {
         EnvEntry* entry = (EnvEntry*)da_get(env->entries, i);
         if (strcmp(entry->name, name) == 0) {
@@ -103,7 +89,6 @@ Object* env_assign(Environment* env, const char* name, Object* value) {
         }
     }
     
-    // Search in outer environments
     if (env->outer != NULL) {
         return env_assign(env->outer, name, value);
     }
@@ -111,17 +96,14 @@ Object* env_assign(Environment* env, const char* name, Object* value) {
     return create_error("identifier not found: %s", name);
 }
 
-// Apply a function to arguments
 static Object* apply_function(Object* fn, DynArray* args) {
     if (fn->type == OBJ_BUILTIN) {
         BuiltinObject* builtin = (BuiltinObject*)fn;
         return builtin->function(args);
     }
-    // Future: handle user-defined functions
     return create_error("not a function: %s", object_type_to_str(fn->type));
 }
 
-// Main evaluation function
 Object* eval(ASTNode* node, Environment* env) {
     if (!node) {
         return NULL;
@@ -135,7 +117,7 @@ Object* eval(ASTNode* node, Environment* env) {
                 if (stmt_ptr) {
                     result = eval(*stmt_ptr, env);
                     if (result && IS_ERROR(result)) {
-                        return result; // Stop on error
+                        return result;
                     }
                 }
             }
@@ -146,14 +128,14 @@ Object* eval(ASTNode* node, Environment* env) {
             if (IS_ERROR(val)) {
                 return val;
             }
-            return env_define(env, node->let_stmt.name->identifier.value, val, false); // immutable
+            return env_define(env, node->let_stmt.name->identifier.value, val, false);
         }
         case NODE_VAR_STATEMENT: {
             Object* val = eval(node->var_stmt.value, env);
             if (IS_ERROR(val)) {
                 return val;
             }
-            return env_define(env, node->var_stmt.name->identifier.value, val, true); // mutable
+            return env_define(env, node->var_stmt.name->identifier.value, val, true);
         }
         case NODE_SET_STATEMENT: {
             Object* val = eval(node->set_stmt.value, env);
@@ -183,7 +165,6 @@ Object* eval(ASTNode* node, Environment* env) {
                 return function;
             }
             
-            // Evaluate arguments
             DynArray* args = da_create(sizeof(Object*));
             for (int i = 0; i < da_count(node->call_expr.arguments); i++) {
                 ASTNode** arg_ptr = (ASTNode**)da_get(node->call_expr.arguments, i);
@@ -201,7 +182,6 @@ Object* eval(ASTNode* node, Environment* env) {
             da_free(args);
             return result;
         }
-        // 新增：IF表达式的求值
         case NODE_IF_EXPRESSION: {
             Object* condition = eval(node->if_expr.condition, env);
             if (IS_ERROR(condition)) {
@@ -213,10 +193,9 @@ Object* eval(ASTNode* node, Environment* env) {
             } else if (node->if_expr.else_branch) {
                 return eval(node->if_expr.else_branch, env);
             } else {
-                return NULL_OBJ; // IF without else returns NULL when condition is false
+                return NULL_OBJ;
             }
         }
-        // 新增：COND表达式的求值
         case NODE_COND_EXPRESSION: {
             for (int i = 0; i < da_count(node->cond_expr.branches); i++) {
                 ASTNode** branch_ptr = (ASTNode**)da_get(node->cond_expr.branches, i);
@@ -232,12 +211,9 @@ Object* eval(ASTNode* node, Environment* env) {
                     }
                 }
             }
-            // 如果所有条件都不满足，返回NULL
             return NULL_OBJ;
         }
-        // 新增：数组字面量的求值（暂时返回第一个元素，完整实现需要数组对象类型）
         case NODE_ARRAY_LITERAL: {
-            // 临时实现：如果数组有元素，返回第一个元素，否则返回NULL
             if (da_count(node->array_literal.elements) > 0) {
                 ASTNode** first_elem_ptr = (ASTNode**)da_get(node->array_literal.elements, 0);
                 if (first_elem_ptr) {

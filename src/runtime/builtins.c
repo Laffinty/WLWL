@@ -1,6 +1,5 @@
 #include "wl.h"
 
-// Built-in function for addition.
 static Object* builtin_add(DynArray* args) {
     double sum = 0;
     for (int i = 0; i < da_count(args); i++) {
@@ -16,7 +15,6 @@ static Object* builtin_add(DynArray* args) {
     return create_number(sum);
 }
 
-// Built-in function for subtraction.
 static Object* builtin_sub(DynArray* args) {
     if (da_count(args) != 2) {
         return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
@@ -40,7 +38,6 @@ static Object* builtin_sub(DynArray* args) {
     return create_number(result);
 }
 
-// Built-in function for multiplication.
 static Object* builtin_mul(DynArray* args) {
     double product = 1;
     for (int i = 0; i < da_count(args); i++) {
@@ -56,7 +53,6 @@ static Object* builtin_mul(DynArray* args) {
     return create_number(product);
 }
 
-// Built-in function for division.
 static Object* builtin_div(DynArray* args) {
     if (da_count(args) != 2) {
         return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
@@ -85,7 +81,6 @@ static Object* builtin_div(DynArray* args) {
     return create_number(result);
 }
 
-// Built-in function for equality comparison.
 static Object* builtin_eq(DynArray* args) {
     if (da_count(args) != 2) {
         return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
@@ -119,7 +114,6 @@ static Object* builtin_eq(DynArray* args) {
     }
 }
 
-// Built-in function for not equal comparison.
 static Object* builtin_ne(DynArray* args) {
     Object* eq_result = builtin_eq(args);
     if (IS_ERROR(eq_result)) {
@@ -128,7 +122,6 @@ static Object* builtin_ne(DynArray* args) {
     return eq_result == TRUE_OBJ ? FALSE_OBJ : TRUE_OBJ;
 }
 
-// Built-in function for greater than comparison.
 static Object* builtin_gt(DynArray* args) {
     if (da_count(args) != 2) {
         return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
@@ -151,7 +144,6 @@ static Object* builtin_gt(DynArray* args) {
     return ((NumberObject*)left)->value > ((NumberObject*)right)->value ? TRUE_OBJ : FALSE_OBJ;
 }
 
-// Built-in function for less than comparison.
 static Object* builtin_lt(DynArray* args) {
     if (da_count(args) != 2) {
         return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
@@ -174,7 +166,6 @@ static Object* builtin_lt(DynArray* args) {
     return ((NumberObject*)left)->value < ((NumberObject*)right)->value ? TRUE_OBJ : FALSE_OBJ;
 }
 
-// Built-in function for greater than or equal comparison.
 static Object* builtin_gte(DynArray* args) {
     if (da_count(args) != 2) {
         return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
@@ -197,7 +188,6 @@ static Object* builtin_gte(DynArray* args) {
     return ((NumberObject*)left)->value >= ((NumberObject*)right)->value ? TRUE_OBJ : FALSE_OBJ;
 }
 
-// Built-in function for less than or equal comparison.
 static Object* builtin_lte(DynArray* args) {
     if (da_count(args) != 2) {
         return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
@@ -220,7 +210,6 @@ static Object* builtin_lte(DynArray* args) {
     return ((NumberObject*)left)->value <= ((NumberObject*)right)->value ? TRUE_OBJ : FALSE_OBJ;
 }
 
-// 辅助函数：将对象转换为字符串表示
 static char* object_to_string(Object* obj) {
     if (!obj) return strdup("NULL");
     
@@ -230,7 +219,6 @@ static char* object_to_string(Object* obj) {
         case OBJ_NUMBER: {
             char buffer[64];
             double val = ((NumberObject*)obj)->value;
-            // 如果是整数，不显示小数点
             if (val == (long)val) {
                 snprintf(buffer, sizeof(buffer), "%.0f", val);
             } else {
@@ -247,13 +235,11 @@ static char* object_to_string(Object* obj) {
     }
 }
 
-// Built-in function for string concatenation - 修复版本，支持自动类型转换
 static Object* builtin_concat(DynArray* args) {
     if (da_count(args) == 0) {
         return create_string("");
     }
     
-    // 计算总长度
     int total_len = 0;
     char** string_args = malloc(da_count(args) * sizeof(char*));
     
@@ -269,11 +255,9 @@ static Object* builtin_concat(DynArray* args) {
         total_len += strlen(string_args[i]);
     }
     
-    // 分配结果字符串
     char* result = malloc(total_len + 1);
     result[0] = '\0';
     
-    // 连接所有字符串
     for (int i = 0; i < da_count(args); i++) {
         strcat(result, string_args[i]);
         free(string_args[i]);
@@ -285,7 +269,6 @@ static Object* builtin_concat(DynArray* args) {
     return str_obj;
 }
 
-// Built-in function for printing (returns NULL)
 static Object* builtin_print(DynArray* args) {
     for (int i = 0; i < da_count(args); i++) {
         Object** arg_ptr = (Object**)da_get(args, i);
@@ -300,15 +283,12 @@ static Object* builtin_print(DynArray* args) {
     return NULL_OBJ;
 }
 
-// Register all built-in functions in the environment.
 void register_builtins(Environment* env) {
-    // Arithmetic functions
     env_set(env, "+", create_builtin(builtin_add));
     env_set(env, "-", create_builtin(builtin_sub));
     env_set(env, "*", create_builtin(builtin_mul));
     env_set(env, "/", create_builtin(builtin_div));
     
-    // Comparison functions
     env_set(env, "=", create_builtin(builtin_eq));
     env_set(env, "!=", create_builtin(builtin_ne));
     env_set(env, ">", create_builtin(builtin_gt));
@@ -316,13 +296,10 @@ void register_builtins(Environment* env) {
     env_set(env, ">=", create_builtin(builtin_gte));
     env_set(env, "<=", create_builtin(builtin_lte));
     
-    // String functions
     env_set(env, "CONCAT", create_builtin(builtin_concat));
     
-    // I/O functions
     env_set(env, "PRINT", create_builtin(builtin_print));
     
-    // 重要修复：注册常量值
     env_set(env, "NULL", NULL_OBJ);
     env_set(env, "TRUE", TRUE_OBJ);
     env_set(env, "FALSE", FALSE_OBJ);
