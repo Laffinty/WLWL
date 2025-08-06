@@ -1,11 +1,9 @@
 #include "wl.h"
 
-// --- 全局单例对象定义 ---
 Object* TRUE_OBJ = NULL;
 Object* FALSE_OBJ = NULL;
 Object* NULL_OBJ = NULL;
 
-// --- 辅助函数 ---
 static Object* allocate_object(ObjectType type, size_t size) {
     Object* obj = malloc(size);
     if (obj == NULL) {
@@ -16,13 +14,11 @@ static Object* allocate_object(ObjectType type, size_t size) {
     return obj;
 }
 
-// --- 公共函数 ---
 void init_global_objects() {
     if (TRUE_OBJ != NULL) {
-        return; // Already initialized
+        return;
     }
     
-    // Create TRUE object
     BooleanObject* true_obj = (BooleanObject*)malloc(sizeof(BooleanObject));
     if (!true_obj) {
         fprintf(stderr, "Failed to allocate TRUE_OBJ\n");
@@ -32,7 +28,6 @@ void init_global_objects() {
     true_obj->value = true;
     TRUE_OBJ = (Object*)true_obj;
 
-    // Create FALSE object
     BooleanObject* false_obj = (BooleanObject*)malloc(sizeof(BooleanObject));
     if (!false_obj) {
         fprintf(stderr, "Failed to allocate FALSE_OBJ\n");
@@ -42,7 +37,6 @@ void init_global_objects() {
     false_obj->value = false;
     FALSE_OBJ = (Object*)false_obj;
 
-    // Create NULL object
     Object* null_obj = (Object*)malloc(sizeof(Object));
     if (!null_obj) {
         fprintf(stderr, "Failed to allocate NULL_OBJ\n");

@@ -44,7 +44,6 @@ void free_ast_node(ASTNode *node) {
             }
             da_free(node->call_expr.arguments);
             break;
-        // 新增：条件语句节点的内存释放
         case NODE_IF_EXPRESSION:
             free_ast_node(node->if_expr.condition);
             free_ast_node(node->if_expr.then_branch);
@@ -76,7 +75,6 @@ void free_ast_node(ASTNode *node) {
             break;
         case NODE_NUMBER_LITERAL:
         case NODE_BOOLEAN_LITERAL:
-            // 无动态内存
             break;
     }
     free(node);

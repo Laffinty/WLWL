@@ -33,12 +33,10 @@ const char* token_type_to_str(TokenType type) {
 Token create_token(TokenType type, const char* literal) {
     Token tok;
     tok.type = type;
-    // 统一使用strdup分配内存，确保所有literal都是动态分配的
     tok.literal = strdup(literal ? literal : "");
     return tok;
 }
 
-// 新增：释放Token内存的函数
 void free_token(Token* token) {
     if (token && token->literal) {
         free(token->literal);
@@ -46,7 +44,6 @@ void free_token(Token* token) {
     }
 }
 
-// 检查标识符是否是关键字
 TokenType lookup_identifier(const char* ident) {
     if (strcmp(ident, "LET") == 0) return TOKEN_LET;
     if (strcmp(ident, "VAR") == 0) return TOKEN_VAR;

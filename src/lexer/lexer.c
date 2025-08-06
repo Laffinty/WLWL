@@ -1,6 +1,5 @@
 #include "wl.h"
 
-// --- 辅助函数 ---
 static bool is_letter(char ch) {
     return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_';
 }
@@ -15,7 +14,7 @@ static bool is_operator_char(char ch) {
 
 static void read_char(Lexer* l) {
     if (l->read_position >= strlen(l->input)) {
-        l->ch = 0; // EOF
+        l->ch = 0;
     } else {
         l->ch = l->input[l->read_position];
     }
@@ -62,15 +61,15 @@ static char* read_number(Lexer* l) {
 }
 
 static char* read_string(Lexer* l) {
-    size_t start_pos = l->position + 1; // Skip opening quote
+    size_t start_pos = l->position + 1;
     
-    read_char(l); // Move past opening quote
+    read_char(l);
     
     while (l->ch != '"' && l->ch != 0) {
         if (l->ch == '\\') {
-            read_char(l); // Skip escape character
+            read_char(l);
             if (l->ch != 0) {
-                read_char(l); // Skip escaped character
+                read_char(l);
             }
         } else {
             read_char(l);
@@ -98,20 +97,19 @@ static void skip_line_comment(Lexer* l) {
 }
 
 static void skip_block_comment(Lexer* l) {
-    read_char(l); // Skip '/'
-    read_char(l); // Skip '*'
+    read_char(l);
+    read_char(l);
     
     while (l->ch != 0) {
         if (l->ch == '*' && peek_char(l) == '/') {
-            read_char(l); // Skip '*'
-            read_char(l); // Skip '/'
+            read_char(l);
+            read_char(l);
             break;
         }
         read_char(l);
     }
 }
 
-// --- 公共函数 ---
 Lexer* create_lexer(const char* input) {
     Lexer* l = malloc(sizeof(Lexer));
     l->input = input;
@@ -132,7 +130,6 @@ Token lexer_next_token(Lexer* l) {
     Token tok;
     skip_whitespace(l);
 
-    // 处理注释
     if (l->ch == '/') {
         char next = peek_char(l);
         if (next == '/') {
@@ -161,11 +158,11 @@ Token lexer_next_token(Lexer* l) {
             tok = create_token(TOKEN_RBRACE, "}"); 
             read_char(l);
             break;
-        case '[':  // 新增：方括号支持
+        case '[':
             tok = create_token(TOKEN_LBRACKET, "["); 
             read_char(l);
             break;
-        case ']':  // 新增：方括号支持
+        case ']':
             tok = create_token(TOKEN_RBRACKET, "]"); 
             read_char(l);
             break;
@@ -191,7 +188,7 @@ Token lexer_next_token(Lexer* l) {
             if (is_letter(l->ch) || is_operator_char(l->ch)) {
                 char* literal = read_identifier(l);
                 tok.type = lookup_identifier(literal);
-                tok.literal = literal; // 直接使用，不需要strdup
+                tok.literal = literal;
                 return tok;
             } else if (is_digit(l->ch)) {
                 char* literal = read_number(l);

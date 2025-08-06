@@ -4,12 +4,11 @@
 #include "../core/dyn_array.h"
 #include "../lexer/token.h"
 
-// --- AST 节点类型枚举 ---
 typedef enum {
     NODE_PROGRAM,
-    NODE_LET_STATEMENT,       // LET(name, value);
-    NODE_VAR_STATEMENT,       // VAR(name, value);
-    NODE_SET_STATEMENT,       // SET(name, value);
+    NODE_LET_STATEMENT,
+    NODE_VAR_STATEMENT,
+    NODE_SET_STATEMENT,
     NODE_EXPRESSION_STATEMENT,
     NODE_IDENTIFIER,
     NODE_NUMBER_LITERAL,
@@ -17,34 +16,31 @@ typedef enum {
     NODE_BOOLEAN_LITERAL,
     NODE_CALL_EXPRESSION,
     
-    // 条件语句节点类型
-    NODE_IF_EXPRESSION,       // IF(condition, then_branch, else_branch)
-    NODE_COND_EXPRESSION,     // COND((cond1, branch1), (cond2, branch2), ...)
-    NODE_COND_BRANCH,         // COND分支：(condition, expression)
+    NODE_IF_EXPRESSION,
+    NODE_COND_EXPRESSION,
+    NODE_COND_BRANCH,
     
-    // 数组字面量（用于COND分支）
-    NODE_ARRAY_LITERAL,       // [expr1, expr2, ...]
+    NODE_ARRAY_LITERAL,
 } ASTNodeType;
 
-// --- AST 节点具体结构定义 ---
 struct ASTNode;
 
 typedef struct {
-    DynArray* statements; // DynArray of struct ASTNode*
+    DynArray* statements;
 } ProgramNode;
 
 typedef struct {
-    struct ASTNode* name; // Identifier
+    struct ASTNode* name;
     struct ASTNode* value;
 } LetStatementNode;
 
 typedef struct {
-    struct ASTNode* name; // Identifier
+    struct ASTNode* name;
     struct ASTNode* value;
 } VarStatementNode;
 
 typedef struct {
-    struct ASTNode* name; // Identifier
+    struct ASTNode* name;
     struct ASTNode* value;
 } SetStatementNode;
 
@@ -53,7 +49,7 @@ typedef struct {
 } ExpressionStatementNode;
 
 typedef struct {
-    char* value; // 例如 "x", "+", "my_function"
+    char* value;
 } IdentifierNode;
 
 typedef struct {
@@ -68,36 +64,30 @@ typedef struct {
     bool value;
 } BooleanLiteralNode;
 
-// 适用于所有前缀调用, e.g., add(2, 3), LET(x, 5)
 typedef struct {
-    struct ASTNode* function; // Identifier
-    DynArray* arguments;      // DynArray of struct ASTNode*
+    struct ASTNode* function;
+    DynArray* arguments;
 } CallExpressionNode;
 
-// 条件表达式：IF(condition, then_branch, else_branch)
 typedef struct {
-    struct ASTNode* condition;    // 条件表达式
-    struct ASTNode* then_branch;  // 真分支
-    struct ASTNode* else_branch;  // 假分支（可选）
+    struct ASTNode* condition;
+    struct ASTNode* then_branch;
+    struct ASTNode* else_branch;
 } IfExpressionNode;
 
-// COND多分支条件表达式：COND((cond1, branch1), (cond2, branch2), ...)
 typedef struct {
-    DynArray* branches;          // DynArray of struct ASTNode* (COND_BRANCH nodes)
+    DynArray* branches;
 } CondExpressionNode;
 
-// COND分支：(condition, expression)
 typedef struct {
-    struct ASTNode* condition;   // 条件表达式
-    struct ASTNode* expression;  // 分支表达式
+    struct ASTNode* condition;
+    struct ASTNode* expression;
 } CondBranchNode;
 
-// 数组字面量：[expr1, expr2, ...]
 typedef struct {
-    DynArray* elements;         // DynArray of struct ASTNode*
+    DynArray* elements;
 } ArrayLiteralNode;
 
-// --- ASTNode 核心结构 (使用 union) ---
 typedef struct ASTNode {
     ASTNodeType type;
     union {
@@ -118,7 +108,6 @@ typedef struct ASTNode {
     };
 } ASTNode;
 
-// --- 辅助函数 ---
 void free_ast_node(ASTNode* node);
 
-#endif // AST_H
+#endif
