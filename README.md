@@ -35,6 +35,12 @@ SET(y, 20);        // 重赋值
 // 字符串操作
 CONCAT("Hello, ", "World!");
 PRINT("Hello from WLWL!");
+
+// 条件语句
+IF(>(x, 0), PRINT("Positive"), PRINT("Not positive"));
+
+// 多分支条件
+COND([>(x, 0), "positive"], [<(x, 0), "negative"], [TRUE, "zero"]);
 ```
 
 ## 示例
@@ -44,6 +50,10 @@ PRINT("Hello from WLWL!");
 LET(pi, 3.14159);
 LET(area, *(pi, *(5, 5)));
 PRINT(CONCAT("Circle area: ", area));
+
+IF(>(area, 50), 
+   PRINT("Large circle"), 
+   PRINT("Small circle"));
 ```
 
 执行：
@@ -51,20 +61,27 @@ PRINT(CONCAT("Circle area: ", area));
 build/wlwl.exe test.wl
 ```
 
-## 功能状态
+## 开发进度
 
-✅ 已实现：
+✅ 已完成：
+- 词法分析 (Lexer)
+- 语法分析 (Parser) 
 - 基础数据类型 (Number, String, Boolean, Null)
 - 变量系统 (LET, VAR, SET)
-- 算术运算 (+, -, *, /)
-- 比较运算 (=, >)
-- 字符串连接 (CONCAT)
+- 算术运算 (+, -, *, /, 支持多参数)
+- 比较运算 (=, !=, >, <, >=, <=)
+- 条件语句 (IF, COND)
+- 字符串操作 (CONCAT)
 - 基础I/O (PRINT)
+- 运行时环境和求值器
+- 内置函数系统
 
 🔄 开发中：
-- 控制流 (IF, WHILE, FOR)
-- 用户函数定义
+- 用户函数定义 (FUN)
+- 循环结构 (WHILE, FOR)
+- 数组和对象类型
 - 面向对象特性
+- Web集成功能
 
 ## 构建要求
 
