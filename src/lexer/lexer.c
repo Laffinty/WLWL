@@ -161,6 +161,14 @@ Token lexer_next_token(Lexer* l) {
             tok = create_token(TOKEN_RBRACE, "}"); 
             read_char(l);
             break;
+        case '[':  // 新增：方括号支持
+            tok = create_token(TOKEN_LBRACKET, "["); 
+            read_char(l);
+            break;
+        case ']':  // 新增：方括号支持
+            tok = create_token(TOKEN_RBRACKET, "]"); 
+            read_char(l);
+            break;
         case ',': 
             tok = create_token(TOKEN_COMMA, ","); 
             read_char(l);

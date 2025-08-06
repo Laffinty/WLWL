@@ -44,6 +44,36 @@ void free_ast_node(ASTNode *node) {
             }
             da_free(node->call_expr.arguments);
             break;
+        // 新增：条件语句节点的内存释放
+        case NODE_IF_EXPRESSION:
+            free_ast_node(node->if_expr.condition);
+            free_ast_node(node->if_expr.then_branch);
+            if (node->if_expr.else_branch) {
+                free_ast_node(node->if_expr.else_branch);
+            }
+            break;
+        case NODE_COND_EXPRESSION:
+            for (int i = 0; i < da_count(node->cond_expr.branches); i++) {
+                ASTNode** branch_ptr = (ASTNode**)da_get(node->cond_expr.branches, i);
+                if (branch_ptr) {
+                    free_ast_node(*branch_ptr);
+                }
+            }
+            da_free(node->cond_expr.branches);
+            break;
+        case NODE_COND_BRANCH:
+            free_ast_node(node->cond_branch.condition);
+            free_ast_node(node->cond_branch.expression);
+            break;
+        case NODE_ARRAY_LITERAL:
+            for (int i = 0; i < da_count(node->array_literal.elements); i++) {
+                ASTNode** elem_ptr = (ASTNode**)da_get(node->array_literal.elements, i);
+                if (elem_ptr) {
+                    free_ast_node(*elem_ptr);
+                }
+            }
+            da_free(node->array_literal.elements);
+            break;
         case NODE_NUMBER_LITERAL:
         case NODE_BOOLEAN_LITERAL:
             // 无动态内存

@@ -20,7 +20,8 @@ typedef enum {
     TOKEN_FUN,
     TOKEN_TRUE,
     TOKEN_FALSE,
-    TOKEN_IF,
+    TOKEN_IF,         // IF - 条件语句
+    TOKEN_COND,       // COND - 多分支条件语句
     TOKEN_RETURN,
     TOKEN_NULL,
 
@@ -29,6 +30,8 @@ typedef enum {
     TOKEN_RPAREN,     // )
     TOKEN_LBRACE,     // {
     TOKEN_RBRACE,     // }
+    TOKEN_LBRACKET,   // [ - 新增：数组字面量和COND分支
+    TOKEN_RBRACKET,   // ] - 新增：数组字面量和COND分支
     TOKEN_COMMA,      // ,
     TOKEN_SEMICOLON,  // ;
 

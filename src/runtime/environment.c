@@ -5,6 +5,23 @@
 // Forward declaration
 static Object* apply_function(Object* fn, DynArray* args);
 
+// 新增：判断对象是否为"真"（WLWL的真值性规则）
+static bool is_truthy(Object* obj) {
+    if (!obj || obj == NULL_OBJ) {
+        return false;
+    }
+    if (obj == FALSE_OBJ) {
+        return false;
+    }
+    if (obj->type == OBJ_NUMBER && ((NumberObject*)obj)->value == 0) {
+        return false;
+    }
+    if (obj->type == OBJ_STRING && strlen(((StringObject*)obj)->value) == 0) {
+        return false;
+    }
+    return true;
+}
+
 // Creates a new, empty environment.
 Environment* create_environment() {
     Environment* env = (Environment*)malloc(sizeof(Environment));
@@ -183,6 +200,51 @@ Object* eval(ASTNode* node, Environment* env) {
             Object* result = apply_function(function, args);
             da_free(args);
             return result;
+        }
+        // 新增：IF表达式的求值
+        case NODE_IF_EXPRESSION: {
+            Object* condition = eval(node->if_expr.condition, env);
+            if (IS_ERROR(condition)) {
+                return condition;
+            }
+            
+            if (is_truthy(condition)) {
+                return eval(node->if_expr.then_branch, env);
+            } else if (node->if_expr.else_branch) {
+                return eval(node->if_expr.else_branch, env);
+            } else {
+                return NULL_OBJ; // IF without else returns NULL when condition is false
+            }
+        }
+        // 新增：COND表达式的求值
+        case NODE_COND_EXPRESSION: {
+            for (int i = 0; i < da_count(node->cond_expr.branches); i++) {
+                ASTNode** branch_ptr = (ASTNode**)da_get(node->cond_expr.branches, i);
+                if (branch_ptr && *branch_ptr) {
+                    ASTNode* branch = *branch_ptr;
+                    Object* condition = eval(branch->cond_branch.condition, env);
+                    if (IS_ERROR(condition)) {
+                        return condition;
+                    }
+                    
+                    if (is_truthy(condition)) {
+                        return eval(branch->cond_branch.expression, env);
+                    }
+                }
+            }
+            // 如果所有条件都不满足，返回NULL
+            return NULL_OBJ;
+        }
+        // 新增：数组字面量的求值（暂时返回第一个元素，完整实现需要数组对象类型）
+        case NODE_ARRAY_LITERAL: {
+            // 临时实现：如果数组有元素，返回第一个元素，否则返回NULL
+            if (da_count(node->array_literal.elements) > 0) {
+                ASTNode** first_elem_ptr = (ASTNode**)da_get(node->array_literal.elements, 0);
+                if (first_elem_ptr) {
+                    return eval(*first_elem_ptr, env);
+                }
+            }
+            return NULL_OBJ;
         }
         default:
             return create_error("unknown node type: %d", node->type);

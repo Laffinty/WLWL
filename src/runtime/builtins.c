@@ -119,6 +119,15 @@ static Object* builtin_eq(DynArray* args) {
     }
 }
 
+// Built-in function for not equal comparison.
+static Object* builtin_ne(DynArray* args) {
+    Object* eq_result = builtin_eq(args);
+    if (IS_ERROR(eq_result)) {
+        return eq_result;
+    }
+    return eq_result == TRUE_OBJ ? FALSE_OBJ : TRUE_OBJ;
+}
+
 // Built-in function for greater than comparison.
 static Object* builtin_gt(DynArray* args) {
     if (da_count(args) != 2) {
@@ -140,6 +149,75 @@ static Object* builtin_gt(DynArray* args) {
     }
     
     return ((NumberObject*)left)->value > ((NumberObject*)right)->value ? TRUE_OBJ : FALSE_OBJ;
+}
+
+// Built-in function for less than comparison.
+static Object* builtin_lt(DynArray* args) {
+    if (da_count(args) != 2) {
+        return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
+    }
+    
+    Object** left_ptr = (Object**)da_get(args, 0);
+    Object** right_ptr = (Object**)da_get(args, 1);
+    
+    if (!left_ptr || !right_ptr) {
+        return create_error("null argument");
+    }
+    
+    Object* left = *left_ptr;
+    Object* right = *right_ptr;
+    
+    if (left->type != OBJ_NUMBER || right->type != OBJ_NUMBER) {
+        return create_error("arguments to '<' must be NUMBER");
+    }
+    
+    return ((NumberObject*)left)->value < ((NumberObject*)right)->value ? TRUE_OBJ : FALSE_OBJ;
+}
+
+// Built-in function for greater than or equal comparison.
+static Object* builtin_gte(DynArray* args) {
+    if (da_count(args) != 2) {
+        return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
+    }
+    
+    Object** left_ptr = (Object**)da_get(args, 0);
+    Object** right_ptr = (Object**)da_get(args, 1);
+    
+    if (!left_ptr || !right_ptr) {
+        return create_error("null argument");
+    }
+    
+    Object* left = *left_ptr;
+    Object* right = *right_ptr;
+    
+    if (left->type != OBJ_NUMBER || right->type != OBJ_NUMBER) {
+        return create_error("arguments to '>=' must be NUMBER");
+    }
+    
+    return ((NumberObject*)left)->value >= ((NumberObject*)right)->value ? TRUE_OBJ : FALSE_OBJ;
+}
+
+// Built-in function for less than or equal comparison.
+static Object* builtin_lte(DynArray* args) {
+    if (da_count(args) != 2) {
+        return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
+    }
+    
+    Object** left_ptr = (Object**)da_get(args, 0);
+    Object** right_ptr = (Object**)da_get(args, 1);
+    
+    if (!left_ptr || !right_ptr) {
+        return create_error("null argument");
+    }
+    
+    Object* left = *left_ptr;
+    Object* right = *right_ptr;
+    
+    if (left->type != OBJ_NUMBER || right->type != OBJ_NUMBER) {
+        return create_error("arguments to '<=' must be NUMBER");
+    }
+    
+    return ((NumberObject*)left)->value <= ((NumberObject*)right)->value ? TRUE_OBJ : FALSE_OBJ;
 }
 
 // 辅助函数：将对象转换为字符串表示
@@ -232,11 +310,20 @@ void register_builtins(Environment* env) {
     
     // Comparison functions
     env_set(env, "=", create_builtin(builtin_eq));
+    env_set(env, "!=", create_builtin(builtin_ne));
     env_set(env, ">", create_builtin(builtin_gt));
+    env_set(env, "<", create_builtin(builtin_lt));
+    env_set(env, ">=", create_builtin(builtin_gte));
+    env_set(env, "<=", create_builtin(builtin_lte));
     
     // String functions
     env_set(env, "CONCAT", create_builtin(builtin_concat));
     
     // I/O functions
     env_set(env, "PRINT", create_builtin(builtin_print));
+    
+    // 重要修复：注册常量值
+    env_set(env, "NULL", NULL_OBJ);
+    env_set(env, "TRUE", TRUE_OBJ);
+    env_set(env, "FALSE", FALSE_OBJ);
 }

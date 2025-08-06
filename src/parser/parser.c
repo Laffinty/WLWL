@@ -17,6 +17,11 @@ static ASTNode* parse_boolean_literal(Parser* p);
 static ASTNode* parse_call_expression(Parser* p, ASTNode* function);
 static DynArray* parse_expression_list(Parser* p, TokenType end_token);
 
+// 新增：条件语句相关的解析函数
+static ASTNode* parse_if_expression(Parser* p);
+static ASTNode* parse_cond_expression(Parser* p);
+static ASTNode* parse_array_literal(Parser* p);
+
 // Helper to record a parsing error.
 static void parser_error(Parser* p, const char* msg) {
     char* error_msg = strdup(msg);
@@ -276,6 +281,15 @@ static ASTNode* parse_expression(Parser* p) {
             left->type = NODE_IDENTIFIER;
             left->identifier.value = strdup("NULL");
             break;
+        case TOKEN_IF:
+            left = parse_if_expression(p);
+            break;
+        case TOKEN_COND:
+            left = parse_cond_expression(p);
+            break;
+        case TOKEN_LBRACKET:
+            left = parse_array_literal(p);
+            break;
         default:
             char error_msg[256];
             snprintf(error_msg, sizeof(error_msg), 
@@ -369,4 +383,168 @@ static DynArray* parse_expression_list(Parser* p, TokenType end_token) {
     }
     
     return args;
+}
+
+// 新增：解析IF表达式：IF(condition, then_branch, else_branch)
+static ASTNode* parse_if_expression(Parser* p) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = NODE_IF_EXPRESSION;
+    
+    // 期望左括号
+    if (!expect_peek(p, TOKEN_LPAREN)) {
+        free(node);
+        return NULL;
+    }
+    
+    // 解析条件表达式
+    next_token(p);
+    node->if_expr.condition = parse_expression(p);
+    if (!node->if_expr.condition) {
+        free(node);
+        return NULL;
+    }
+    
+    // 期望逗号
+    if (!expect_peek(p, TOKEN_COMMA)) {
+        free_ast_node(node->if_expr.condition);
+        free(node);
+        return NULL;
+    }
+    
+    // 解析then分支
+    next_token(p);
+    node->if_expr.then_branch = parse_expression(p);
+    if (!node->if_expr.then_branch) {
+        free_ast_node(node->if_expr.condition);
+        free(node);
+        return NULL;
+    }
+    
+    // 检查是否有else分支
+    node->if_expr.else_branch = NULL;
+    if (peek_token_is(p, TOKEN_COMMA)) {
+        next_token(p); // consume comma
+        next_token(p); // move to else expression
+        node->if_expr.else_branch = parse_expression(p);
+    }
+    
+    // 期望右括号
+    if (!expect_peek(p, TOKEN_RPAREN)) {
+        free_ast_node(node);
+        return NULL;
+    }
+    
+    return node;
+}
+
+// 新增：解析COND表达式：COND((cond1, branch1), (cond2, branch2), ...)
+static ASTNode* parse_cond_expression(Parser* p) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = NODE_COND_EXPRESSION;
+    node->cond_expr.branches = da_create(sizeof(ASTNode*));
+    
+    // 期望左括号
+    if (!expect_peek(p, TOKEN_LPAREN)) {
+        da_free(node->cond_expr.branches);
+        free(node);
+        return NULL;
+    }
+    
+    // 解析分支列表
+    while (!peek_token_is(p, TOKEN_RPAREN) && !peek_token_is(p, TOKEN_EOF)) {
+        // 期望数组字面量 [condition, expression]
+        if (!expect_peek(p, TOKEN_LBRACKET)) {
+            break;
+        }
+        
+        // 创建分支节点
+        ASTNode* branch = (ASTNode*)malloc(sizeof(ASTNode));
+        branch->type = NODE_COND_BRANCH;
+        
+        // 解析条件
+        next_token(p);
+        branch->cond_branch.condition = parse_expression(p);
+        if (!branch->cond_branch.condition) {
+            free(branch);
+            break;
+        }
+        
+        // 期望逗号
+        if (!expect_peek(p, TOKEN_COMMA)) {
+            free_ast_node(branch->cond_branch.condition);
+            free(branch);
+            break;
+        }
+        
+        // 解析表达式
+        next_token(p);
+        branch->cond_branch.expression = parse_expression(p);
+        if (!branch->cond_branch.expression) {
+            free_ast_node(branch->cond_branch.condition);
+            free(branch);
+            break;
+        }
+        
+        // 期望右方括号
+        if (!expect_peek(p, TOKEN_RBRACKET)) {
+            free_ast_node(branch);
+            break;
+        }
+        
+        // 添加分支到列表
+        da_push(node->cond_expr.branches, &branch);
+        
+        // 如果下一个是逗号，消费它
+        if (peek_token_is(p, TOKEN_COMMA)) {
+            next_token(p);
+        } else {
+            break;
+        }
+    }
+    
+    // 期望右括号
+    if (!expect_peek(p, TOKEN_RPAREN)) {
+        free_ast_node(node);
+        return NULL;
+    }
+    
+    return node;
+}
+
+// 新增：解析数组字面量：[expr1, expr2, ...]
+static ASTNode* parse_array_literal(Parser* p) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = NODE_ARRAY_LITERAL;
+    node->array_literal.elements = da_create(sizeof(ASTNode*));
+    
+    // 如果立即遇到右方括号，返回空数组
+    if (peek_token_is(p, TOKEN_RBRACKET)) {
+        next_token(p);
+        return node;
+    }
+    
+    // 解析第一个元素
+    next_token(p);
+    ASTNode* elem = parse_expression(p);
+    if (elem) {
+        da_push(node->array_literal.elements, &elem);
+    }
+    
+    // 解析后续元素
+    while (peek_token_is(p, TOKEN_COMMA)) {
+        next_token(p); // consume comma
+        next_token(p); // move to next element
+        elem = parse_expression(p);
+        if (elem) {
+            da_push(node->array_literal.elements, &elem);
+        }
+    }
+    
+    // 期望右方括号
+    if (!expect_peek(p, TOKEN_RBRACKET)) {
+        free_ast_node(node);
+        return NULL;
+    }
+    
+    return node;
 }
