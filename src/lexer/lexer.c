@@ -9,13 +9,11 @@ static bool is_digit(char ch) {
     return ch >= '0' && ch <= '9';
 }
 
-// 根据设计规范，操作符也是标识符的一部分
 static bool is_operator_char(char ch) {
     return strchr("+-*/%^=!<>&|", ch) != NULL;
 }
 
 static void read_char(Lexer* l) {
-    // The comparison is now between two size_t types, resolving the warning.
     if (l->read_position >= strlen(l->input)) {
         l->ch = 0; // EOF
     } else {
@@ -34,11 +32,11 @@ static char peek_char(Lexer* l) {
 }
 
 static char* read_identifier(Lexer* l) {
-    size_t start_pos = l->position; // Use size_t for consistency
+    size_t start_pos = l->position;
     while (is_letter(l->ch) || is_digit(l->ch) || is_operator_char(l->ch)) {
         read_char(l);
     }
-    size_t length = l->position - start_pos; // length is also size_t
+    size_t length = l->position - start_pos;
     char* ident = malloc(length + 1);
     strncpy(ident, l->input + start_pos, length);
     ident[length] = '\0';
@@ -46,7 +44,7 @@ static char* read_identifier(Lexer* l) {
 }
 
 static char* read_number(Lexer* l) {
-    size_t start_pos = l->position; // Use size_t
+    size_t start_pos = l->position;
     while (is_digit(l->ch)) {
         read_char(l);
     }
@@ -56,7 +54,7 @@ static char* read_number(Lexer* l) {
             read_char(l);
         }
     }
-    size_t length = l->position - start_pos; // Use size_t
+    size_t length = l->position - start_pos;
     char* num = malloc(length + 1);
     strncpy(num, l->input + start_pos, length);
     num[length] = '\0';
@@ -64,12 +62,11 @@ static char* read_number(Lexer* l) {
 }
 
 static char* read_string(Lexer* l) {
-    size_t start_pos = l->position + 1; // Skip opening quote, use size_t
+    size_t start_pos = l->position + 1; // Skip opening quote
     
     read_char(l); // Move past opening quote
     
     while (l->ch != '"' && l->ch != 0) {
-        // Handle escape sequences (basic implementation)
         if (l->ch == '\\') {
             read_char(l); // Skip escape character
             if (l->ch != 0) {
@@ -80,7 +77,7 @@ static char* read_string(Lexer* l) {
         }
     }
     
-    size_t length = l->position - start_pos; // Use size_t
+    size_t length = l->position - start_pos;
     char* str = malloc(length + 1);
     strncpy(str, l->input + start_pos, length);
     str[length] = '\0';
@@ -94,14 +91,12 @@ static void skip_whitespace(Lexer* l) {
     }
 }
 
-// 新增：跳过单行注释
 static void skip_line_comment(Lexer* l) {
     while (l->ch != '\n' && l->ch != 0) {
         read_char(l);
     }
 }
 
-// 新增：跳过多行注释
 static void skip_block_comment(Lexer* l) {
     read_char(l); // Skip '/'
     read_char(l); // Skip '*'
@@ -141,15 +136,12 @@ Token lexer_next_token(Lexer* l) {
     if (l->ch == '/') {
         char next = peek_char(l);
         if (next == '/') {
-            // 单行注释
             skip_line_comment(l);
-            return lexer_next_token(l); // 递归调用获取下一个有效token
+            return lexer_next_token(l);
         } else if (next == '*') {
-            // 多行注释
             skip_block_comment(l);
-            return lexer_next_token(l); // 递归调用获取下一个有效token
+            return lexer_next_token(l);
         }
-        // 如果不是注释，继续处理为普通字符
     }
 
     switch (l->ch) {
@@ -180,8 +172,8 @@ Token lexer_next_token(Lexer* l) {
         case '"': {
             char* str_literal = read_string(l);
             tok = create_token(TOKEN_STRING, str_literal);
-            free(str_literal); // 释放临时字符串
-            read_char(l); // Skip closing quote
+            free(str_literal);
+            read_char(l);
             break;
         }
         case 0: 
@@ -191,13 +183,13 @@ Token lexer_next_token(Lexer* l) {
             if (is_letter(l->ch) || is_operator_char(l->ch)) {
                 char* literal = read_identifier(l);
                 tok.type = lookup_identifier(literal);
-                tok.literal = literal; // 直接使用，不需要再次strdup
-                return tok; // 直接返回，避免再次前进
+                tok.literal = literal; // 直接使用，不需要strdup
+                return tok;
             } else if (is_digit(l->ch)) {
                 char* literal = read_number(l);
                 tok = create_token(TOKEN_NUMBER, literal);
-                free(literal); // 释放临时字符串
-                return tok; // 直接返回
+                free(literal);
+                return tok;
             } else {
                 char illegal_char[2] = {l->ch, '\0'};
                 tok = create_token(TOKEN_ILLEGAL, illegal_char);
