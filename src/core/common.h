@@ -6,5 +6,6 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <math.h>    // 新增math.h以支持fmod等数学函数
 
 #endif

@@ -21,6 +21,13 @@ typedef enum {
     NODE_COND_BRANCH,
     
     NODE_ARRAY_LITERAL,
+    
+    // 新增循环相关节点
+    NODE_WHILE_EXPRESSION,
+    NODE_FOR_EXPRESSION,
+    NODE_FOREACH_EXPRESSION,
+    NODE_BREAK_STATEMENT,
+    NODE_CONTINUE_STATEMENT,
 } ASTNodeType;
 
 struct ASTNode;
@@ -88,6 +95,33 @@ typedef struct {
     DynArray* elements;
 } ArrayLiteralNode;
 
+// 新增循环节点结构
+typedef struct {
+    struct ASTNode* condition;
+    struct ASTNode* body;
+} WhileExpressionNode;
+
+typedef struct {
+    struct ASTNode* init;      // 初始化表达式
+    struct ASTNode* condition; // 条件表达式
+    struct ASTNode* step;      // 步进表达式
+    struct ASTNode* body;      // 循环体
+} ForExpressionNode;
+
+typedef struct {
+    struct ASTNode* var_name;  // 循环变量名
+    struct ASTNode* iterable;  // 可迭代对象
+    struct ASTNode* body;      // 循环体
+} ForeachExpressionNode;
+
+typedef struct {
+    // 空结构，仅表示break语句
+} BreakStatementNode;
+
+typedef struct {
+    // 空结构，仅表示continue语句
+} ContinueStatementNode;
+
 typedef struct ASTNode {
     ASTNodeType type;
     union {
@@ -105,6 +139,13 @@ typedef struct ASTNode {
         CondExpressionNode      cond_expr;
         CondBranchNode          cond_branch;
         ArrayLiteralNode        array_literal;
+        
+        // 新增循环节点联合体成员
+        WhileExpressionNode     while_expr;
+        ForExpressionNode       for_expr;
+        ForeachExpressionNode   foreach_expr;
+        BreakStatementNode      break_stmt;
+        ContinueStatementNode   continue_stmt;
     };
 } ASTNode;
 

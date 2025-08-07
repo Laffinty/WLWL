@@ -119,6 +119,10 @@ Object* eval(ASTNode* node, Environment* env) {
                     if (result && IS_ERROR(result)) {
                         return result;
                     }
+                    // 检查循环控制语句，在程序级别也需要传播
+                    if (result && (IS_BREAK(result) || IS_CONTINUE(result))) {
+                        return result;
+                    }
                 }
             }
             return result;
@@ -222,6 +226,155 @@ Object* eval(ASTNode* node, Environment* env) {
             }
             return NULL_OBJ;
         }
+        
+        // === 新增循环语句执行逻辑 ===
+        
+        case NODE_WHILE_EXPRESSION: {
+            Object* result = NULL_OBJ;
+            
+            while (true) {
+                Object* condition = eval(node->while_expr.condition, env);
+                if (IS_ERROR(condition)) {
+                    return condition;
+                }
+                
+                if (!is_truthy(condition)) {
+                    break;
+                }
+                
+                result = eval(node->while_expr.body, env);
+                if (IS_ERROR(result)) {
+                    return result;
+                }
+                
+                // 处理循环控制语句
+                if (IS_BREAK(result)) {
+                    result = NULL_OBJ;  // break退出循环，返回null
+                    break;
+                }
+                if (IS_CONTINUE(result)) {
+                    result = NULL_OBJ;  // continue继续下一次迭代
+                    continue;
+                }
+            }
+            
+            return result;
+        }
+        
+        case NODE_FOR_EXPRESSION: {
+            // 创建新的作用域用于for循环
+            Environment* loop_env = create_enclosed_environment(env);
+            Object* result = NULL_OBJ;
+            
+            // 执行初始化表达式
+            Object* init_result = eval(node->for_expr.init, loop_env);
+            if (IS_ERROR(init_result)) {
+                free_environment(loop_env);
+                return init_result;
+            }
+            
+            while (true) {
+                // 检查条件
+                Object* condition = eval(node->for_expr.condition, loop_env);
+                if (IS_ERROR(condition)) {
+                    free_environment(loop_env);
+                    return condition;
+                }
+                
+                if (!is_truthy(condition)) {
+                    break;
+                }
+                
+                // 执行循环体
+                result = eval(node->for_expr.body, loop_env);
+                if (IS_ERROR(result)) {
+                    free_environment(loop_env);
+                    return result;
+                }
+                
+                // 处理循环控制语句
+                if (IS_BREAK(result)) {
+                    result = NULL_OBJ;
+                    break;
+                }
+                if (IS_CONTINUE(result)) {
+                    result = NULL_OBJ;
+                    // 继续执行步进语句
+                }
+                
+                // 执行步进表达式
+                Object* step_result = eval(node->for_expr.step, loop_env);
+                if (IS_ERROR(step_result)) {
+                    free_environment(loop_env);
+                    return step_result;
+                }
+            }
+            
+            free_environment(loop_env);
+            return result;
+        }
+        
+        case NODE_FOREACH_EXPRESSION: {
+            // FOREACH暂时简化实现 - 仅处理数组字面量
+            Object* iterable = eval(node->foreach_expr.iterable, env);
+            if (IS_ERROR(iterable)) {
+                return iterable;
+            }
+            
+            // 创建新的作用域
+            Environment* loop_env = create_enclosed_environment(env);
+            Object* result = NULL_OBJ;
+            
+            // 简化版本：如果是数组字面量，我们遍历其元素
+            // 实际实现中需要更复杂的迭代器支持
+            if (node->foreach_expr.iterable->type == NODE_ARRAY_LITERAL) {
+                DynArray* elements = node->foreach_expr.iterable->array_literal.elements;
+                
+                for (int i = 0; i < da_count(elements); i++) {
+                    ASTNode** elem_ptr = (ASTNode**)da_get(elements, i);
+                    if (elem_ptr) {
+                        Object* elem_value = eval(*elem_ptr, env);
+                        if (IS_ERROR(elem_value)) {
+                            free_environment(loop_env);
+                            return elem_value;
+                        }
+                        
+                        // 设置循环变量
+                        env_define(loop_env, node->foreach_expr.var_name->identifier.value, elem_value, false);
+                        
+                        // 执行循环体
+                        result = eval(node->foreach_expr.body, loop_env);
+                        if (IS_ERROR(result)) {
+                            free_environment(loop_env);
+                            return result;
+                        }
+                        
+                        // 处理循环控制语句
+                        if (IS_BREAK(result)) {
+                            result = NULL_OBJ;
+                            break;
+                        }
+                        if (IS_CONTINUE(result)) {
+                            result = NULL_OBJ;
+                            continue;
+                        }
+                    }
+                }
+            } else {
+                free_environment(loop_env);
+                return create_error("FOREACH currently only supports array literals");
+            }
+            
+            free_environment(loop_env);
+            return result;
+        }
+        
+        case NODE_BREAK_STATEMENT:
+            return create_break();
+            
+        case NODE_CONTINUE_STATEMENT:
+            return create_continue();
+        
         default:
             return create_error("unknown node type: %d", node->type);
     }

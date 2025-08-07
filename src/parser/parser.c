@@ -20,6 +20,13 @@ static ASTNode* parse_if_expression(Parser* p);
 static ASTNode* parse_cond_expression(Parser* p);
 static ASTNode* parse_array_literal(Parser* p);
 
+// 新增循环解析函数声明
+static ASTNode* parse_while_expression(Parser* p);
+static ASTNode* parse_for_expression(Parser* p);
+static ASTNode* parse_foreach_expression(Parser* p);
+static ASTNode* parse_break_statement(Parser* p);
+static ASTNode* parse_continue_statement(Parser* p);
+
 static void parser_error(Parser* p, const char* msg) {
     char* error_msg = strdup(msg);
     da_push(&p->errors, &error_msg);
@@ -105,6 +112,10 @@ static ASTNode* parse_statement(Parser* p) {
             return parse_var_statement(p);
         case TOKEN_SET:
             return parse_set_statement(p);
+        case TOKEN_BREAK:
+            return parse_break_statement(p);
+        case TOKEN_CONTINUE:
+            return parse_continue_statement(p);
         default:
             return parse_expression_statement(p);
     }
@@ -261,6 +272,15 @@ static ASTNode* parse_expression(Parser* p) {
         case TOKEN_COND:
             left = parse_cond_expression(p);
             break;
+        case TOKEN_WHILE:
+            left = parse_while_expression(p);
+            break;
+        case TOKEN_FOR:
+            left = parse_for_expression(p);
+            break;
+        case TOKEN_FOREACH:
+            left = parse_foreach_expression(p);
+            break;
         case TOKEN_LBRACKET:
             left = parse_array_literal(p);
             break;
@@ -285,6 +305,7 @@ static ASTNode* parse_identifier(Parser* p) {
     node->type = NODE_IDENTIFIER;
     node->identifier.value = strdup(p->current_token.literal);
     return node;
+}
 }
 
 static ASTNode* parse_number_literal(Parser* p) {
@@ -491,3 +512,200 @@ static ASTNode* parse_array_literal(Parser* p) {
     
     return node;
 }
+
+// === 新增循环解析函数实现 ===
+
+static ASTNode* parse_while_expression(Parser* p) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = NODE_WHILE_EXPRESSION;
+    
+    // 解析 WHILE(condition, body)
+    if (!expect_peek(p, TOKEN_LPAREN)) {
+        free(node);
+        return NULL;
+    }
+    
+    next_token(p);
+    node->while_expr.condition = parse_expression(p);
+    if (!node->while_expr.condition) {
+        free(node);
+        return NULL;
+    }
+    
+    if (!expect_peek(p, TOKEN_COMMA)) {
+        free_ast_node(node->while_expr.condition);
+        free(node);
+        return NULL;
+    }
+    
+    next_token(p);
+    node->while_expr.body = parse_expression(p);
+    if (!node->while_expr.body) {
+        free_ast_node(node->while_expr.condition);
+        free(node);
+        return NULL;
+    }
+    
+    if (!expect_peek(p, TOKEN_RPAREN)) {
+        free_ast_node(node);
+        return NULL;
+    }
+    
+    return node;
+}
+
+static ASTNode* parse_for_expression(Parser* p) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = NODE_FOR_EXPRESSION;
+    
+    // 解析 FOR(init, condition, step, body)
+    if (!expect_peek(p, TOKEN_LPAREN)) {
+        free(node);
+        return NULL;
+    }
+    
+    // 解析初始化表达式
+    next_token(p);
+    node->for_expr.init = parse_expression(p);
+    if (!node->for_expr.init) {
+        free(node);
+        return NULL;
+    }
+    
+    if (!expect_peek(p, TOKEN_COMMA)) {
+        free_ast_node(node->for_expr.init);
+        free(node);
+        return NULL;
+    }
+    
+    // 解析条件表达式
+    next_token(p);
+    node->for_expr.condition = parse_expression(p);
+    if (!node->for_expr.condition) {
+        free_ast_node(node->for_expr.init);
+        free(node);
+        return NULL;
+    }
+    
+    if (!expect_peek(p, TOKEN_COMMA)) {
+        free_ast_node(node->for_expr.init);
+        free_ast_node(node->for_expr.condition);
+        free(node);
+        return NULL;
+    }
+    
+    // 解析步进表达式
+    next_token(p);
+    node->for_expr.step = parse_expression(p);
+    if (!node->for_expr.step) {
+        free_ast_node(node->for_expr.init);
+        free_ast_node(node->for_expr.condition);
+        free(node);
+        return NULL;
+    }
+    
+    if (!expect_peek(p, TOKEN_COMMA)) {
+        free_ast_node(node->for_expr.init);
+        free_ast_node(node->for_expr.condition);
+        free_ast_node(node->for_expr.step);
+        free(node);
+        return NULL;
+    }
+    
+    // 解析循环体
+    next_token(p);
+    node->for_expr.body = parse_expression(p);
+    if (!node->for_expr.body) {
+        free_ast_node(node->for_expr.init);
+        free_ast_node(node->for_expr.condition);
+        free_ast_node(node->for_expr.step);
+        free(node);
+        return NULL;
+    }
+    
+    if (!expect_peek(p, TOKEN_RPAREN)) {
+        free_ast_node(node);
+        return NULL;
+    }
+    
+    return node;
+}
+
+static ASTNode* parse_foreach_expression(Parser* p) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = NODE_FOREACH_EXPRESSION;
+    
+    // 解析 FOREACH(var_name, iterable, body)
+    if (!expect_peek(p, TOKEN_LPAREN)) {
+        free(node);
+        return NULL;
+    }
+    
+    // 解析循环变量名
+    if (!expect_peek(p, TOKEN_IDENTIFIER)) {
+        free(node);
+        return NULL;
+    }
+    
+    node->foreach_expr.var_name = parse_identifier(p);
+    
+    if (!expect_peek(p, TOKEN_COMMA)) {
+        free_ast_node(node->foreach_expr.var_name);
+        free(node);
+        return NULL;
+    }
+    
+    // 解析可迭代对象
+    next_token(p);
+    node->foreach_expr.iterable = parse_expression(p);
+    if (!node->foreach_expr.iterable) {
+        free_ast_node(node->foreach_expr.var_name);
+        free(node);
+        return NULL;
+    }
+    
+    if (!expect_peek(p, TOKEN_COMMA)) {
+        free_ast_node(node->foreach_expr.var_name);
+        free_ast_node(node->foreach_expr.iterable);
+        free(node);
+        return NULL;
+    }
+    
+    // 解析循环体
+    next_token(p);
+    node->foreach_expr.body = parse_expression(p);
+    if (!node->foreach_expr.body) {
+        free_ast_node(node->foreach_expr.var_name);
+        free_ast_node(node->foreach_expr.iterable);
+        free(node);
+        return NULL;
+    }
+    
+    if (!expect_peek(p, TOKEN_RPAREN)) {
+        free_ast_node(node);
+        return NULL;
+    }
+    
+    return node;
+}
+
+static ASTNode* parse_break_statement(Parser* p) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = NODE_BREAK_STATEMENT;
+    
+    if (peek_token_is(p, TOKEN_SEMICOLON)) {
+        next_token(p);
+    }
+    
+    return node;
+}
+
+static ASTNode* parse_continue_statement(Parser* p) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = NODE_CONTINUE_STATEMENT;
+    
+    if (peek_token_is(p, TOKEN_SEMICOLON)) {
+        next_token(p);
+    }
+    
+    return node;

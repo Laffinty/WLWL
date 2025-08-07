@@ -18,6 +18,11 @@ const char* token_type_to_str(TokenType type) {
         case TOKEN_COND: return "COND";
         case TOKEN_RETURN: return "RETURN";
         case TOKEN_NULL: return "NULL";
+        case TOKEN_WHILE: return "WHILE";
+        case TOKEN_FOR: return "FOR";
+        case TOKEN_FOREACH: return "FOREACH";
+        case TOKEN_BREAK: return "BREAK";
+        case TOKEN_CONTINUE: return "CONTINUE";
         case TOKEN_LPAREN: return "(";
         case TOKEN_RPAREN: return ")";
         case TOKEN_LBRACE: return "{";
@@ -55,5 +60,13 @@ TokenType lookup_identifier(const char* ident) {
     if (strcmp(ident, "COND") == 0) return TOKEN_COND;
     if (strcmp(ident, "RETURN") == 0) return TOKEN_RETURN;
     if (strcmp(ident, "NULL") == 0) return TOKEN_NULL;
+    
+    // 新增循环关键字识别
+    if (strcmp(ident, "WHILE") == 0) return TOKEN_WHILE;
+    if (strcmp(ident, "FOR") == 0) return TOKEN_FOR;
+    if (strcmp(ident, "FOREACH") == 0) return TOKEN_FOREACH;
+    if (strcmp(ident, "BREAK") == 0) return TOKEN_BREAK;
+    if (strcmp(ident, "CONTINUE") == 0) return TOKEN_CONTINUE;
+    
     return TOKEN_IDENTIFIER;
 }

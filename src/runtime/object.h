@@ -1,7 +1,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include "../core/dyn_array.h" // 修正：自包含依赖
+#include "../core/dyn_array.h"
 #include <stdbool.h>
 
 // --- 前向声明 ---
@@ -18,6 +18,10 @@ typedef enum {
     OBJ_FUNCTION,
     OBJ_STRING,
     OBJ_BUILTIN,
+    
+    // 新增循环控制对象类型
+    OBJ_BREAK,
+    OBJ_CONTINUE,
 } ObjectType;
 
 // --- 对象核心结构 ---
@@ -65,13 +69,26 @@ typedef struct {
     BuiltinFunction function;
 } BuiltinObject;
 
+// 新增循环控制对象结构
+typedef struct {
+    Object base;
+} BreakObject;
+
+typedef struct {
+    Object base;
+} ContinueObject;
+
 // --- 单例对象 ---
 extern Object* TRUE_OBJ;
 extern Object* FALSE_OBJ;
 extern Object* NULL_OBJ;
+extern Object* BREAK_OBJ;
+extern Object* CONTINUE_OBJ;
 
 // --- 辅助宏和函数 ---
 #define IS_ERROR(obj) ((obj) != NULL && (obj)->type == OBJ_ERROR)
+#define IS_BREAK(obj) ((obj) != NULL && (obj)->type == OBJ_BREAK)
+#define IS_CONTINUE(obj) ((obj) != NULL && (obj)->type == OBJ_CONTINUE)
 
 void init_global_objects();
 Object* create_number(double value);
@@ -80,6 +97,10 @@ Object* create_return_value(Object* value);
 Object* create_error(const char* format, ...);
 Object* create_function(DynArray* parameters, struct ASTNode* body, struct Environment* env);
 Object* create_builtin(BuiltinFunction function);
+
+// 新增循环控制对象创建函数
+Object* create_break();
+Object* create_continue();
 
 void free_object(Object* object);
 void print_object(Object* object);

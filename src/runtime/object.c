@@ -3,6 +3,8 @@
 Object* TRUE_OBJ = NULL;
 Object* FALSE_OBJ = NULL;
 Object* NULL_OBJ = NULL;
+Object* BREAK_OBJ = NULL;
+Object* CONTINUE_OBJ = NULL;
 
 static Object* allocate_object(ObjectType type, size_t size) {
     Object* obj = malloc(size);
@@ -44,6 +46,23 @@ void init_global_objects() {
     }
     null_obj->type = OBJ_NULL;
     NULL_OBJ = null_obj;
+
+    // 初始化循环控制对象
+    BreakObject* break_obj = (BreakObject*)malloc(sizeof(BreakObject));
+    if (!break_obj) {
+        fprintf(stderr, "Failed to allocate BREAK_OBJ\n");
+        exit(1);
+    }
+    break_obj->base.type = OBJ_BREAK;
+    BREAK_OBJ = (Object*)break_obj;
+
+    ContinueObject* continue_obj = (ContinueObject*)malloc(sizeof(ContinueObject));
+    if (!continue_obj) {
+        fprintf(stderr, "Failed to allocate CONTINUE_OBJ\n");
+        exit(1);
+    }
+    continue_obj->base.type = OBJ_CONTINUE;
+    CONTINUE_OBJ = (Object*)continue_obj;
 }
 
 Object* create_number(double value) {
@@ -89,8 +108,21 @@ Object* create_builtin(BuiltinFunction function) {
     return (Object*)obj;
 }
 
+Object* create_break() {
+    return BREAK_OBJ;
+}
+
+Object* create_continue() {
+    return CONTINUE_OBJ;
+}
+
 void free_object(Object* object) {
-    if (object == NULL || object == TRUE_OBJ || object == FALSE_OBJ || object == NULL_OBJ) {
+    if (object == NULL || 
+        object == TRUE_OBJ || 
+        object == FALSE_OBJ || 
+        object == NULL_OBJ ||
+        object == BREAK_OBJ ||
+        object == CONTINUE_OBJ) {
         return;
     }
 
@@ -154,6 +186,12 @@ void print_object(Object* object) {
             printf(") { ... }");
             break;
         }
+        case OBJ_BREAK:
+            printf("[break]");
+            break;
+        case OBJ_CONTINUE:
+            printf("[continue]");
+            break;
         default: 
             printf("Unknown object type: %d", object->type); 
             break;
@@ -170,6 +208,8 @@ const char* object_type_to_str(ObjectType type) {
         case OBJ_ERROR: return "ERROR";
         case OBJ_FUNCTION: return "FUNCTION";
         case OBJ_BUILTIN: return "BUILTIN";
+        case OBJ_BREAK: return "BREAK";
+        case OBJ_CONTINUE: return "CONTINUE";
         default: return "UNKNOWN";
     }
 }

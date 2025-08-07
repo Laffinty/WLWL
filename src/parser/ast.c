@@ -73,6 +73,26 @@ void free_ast_node(ASTNode *node) {
             }
             da_free(node->array_literal.elements);
             break;
+        // 新增循环节点释放逻辑
+        case NODE_WHILE_EXPRESSION:
+            free_ast_node(node->while_expr.condition);
+            free_ast_node(node->while_expr.body);
+            break;
+        case NODE_FOR_EXPRESSION:
+            free_ast_node(node->for_expr.init);
+            free_ast_node(node->for_expr.condition);
+            free_ast_node(node->for_expr.step);
+            free_ast_node(node->for_expr.body);
+            break;
+        case NODE_FOREACH_EXPRESSION:
+            free_ast_node(node->foreach_expr.var_name);
+            free_ast_node(node->foreach_expr.iterable);
+            free_ast_node(node->foreach_expr.body);
+            break;
+        case NODE_BREAK_STATEMENT:
+        case NODE_CONTINUE_STATEMENT:
+            // 无需释放任何子节点
+            break;
         case NODE_NUMBER_LITERAL:
         case NODE_BOOLEAN_LITERAL:
             break;

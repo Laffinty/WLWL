@@ -81,6 +81,35 @@ static Object* builtin_div(DynArray* args) {
     return create_number(result);
 }
 
+// 新增取模运算符
+static Object* builtin_mod(DynArray* args) {
+    if (da_count(args) != 2) {
+        return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
+    }
+    
+    Object** left_ptr = (Object**)da_get(args, 0);
+    Object** right_ptr = (Object**)da_get(args, 1);
+    
+    if (!left_ptr || !right_ptr) {
+        return create_error("null argument");
+    }
+    
+    Object* left = *left_ptr;
+    Object* right = *right_ptr;
+    
+    if (left->type != OBJ_NUMBER || right->type != OBJ_NUMBER) {
+        return create_error("arguments to '%' must be NUMBER");
+    }
+    
+    double divisor = ((NumberObject*)right)->value;
+    if (divisor == 0) {
+        return create_error("modulo by zero");
+    }
+    
+    double result = fmod(((NumberObject*)left)->value, divisor);
+    return create_number(result);
+}
+
 static Object* builtin_eq(DynArray* args) {
     if (da_count(args) != 2) {
         return create_error("wrong number of arguments. got=%d, want=2", da_count(args));
@@ -288,6 +317,7 @@ void register_builtins(Environment* env) {
     env_set(env, "-", create_builtin(builtin_sub));
     env_set(env, "*", create_builtin(builtin_mul));
     env_set(env, "/", create_builtin(builtin_div));
+    env_set(env, "%", create_builtin(builtin_mod));  // 新增取模运算符
     
     env_set(env, "=", create_builtin(builtin_eq));
     env_set(env, "!=", create_builtin(builtin_ne));

@@ -19,6 +19,13 @@ typedef enum {
     TOKEN_COND,
     TOKEN_RETURN,
     TOKEN_NULL,
+    
+    // 新增循环关键字
+    TOKEN_WHILE,
+    TOKEN_FOR,
+    TOKEN_FOREACH,
+    TOKEN_BREAK,
+    TOKEN_CONTINUE,
 
     TOKEN_LPAREN,
     TOKEN_RPAREN,
