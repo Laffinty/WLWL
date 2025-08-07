@@ -239,6 +239,93 @@ static Object* builtin_lte(DynArray* args) {
     return ((NumberObject*)left)->value <= ((NumberObject*)right)->value ? TRUE_OBJ : FALSE_OBJ;
 }
 
+// 新增逻辑运算符 AND
+static Object* builtin_and(DynArray* args) {
+    if (da_count(args) == 0) {
+        return TRUE_OBJ;  // 空参数时返回 TRUE
+    }
+    
+    for (int i = 0; i < da_count(args); i++) {
+        Object** arg_ptr = (Object**)da_get(args, i);
+        if (!arg_ptr) {
+            return FALSE_OBJ;
+        }
+        
+        Object* arg = *arg_ptr;
+        
+        // 检查参数是否为 FALSE、NULL 或 0
+        if (arg == FALSE_OBJ || arg == NULL_OBJ) {
+            return FALSE_OBJ;
+        }
+        if (arg->type == OBJ_NUMBER && ((NumberObject*)arg)->value == 0) {
+            return FALSE_OBJ;
+        }
+        if (arg->type == OBJ_STRING && strlen(((StringObject*)arg)->value) == 0) {
+            return FALSE_OBJ;
+        }
+    }
+    
+    return TRUE_OBJ;  // 所有参数都为真值
+}
+
+// 新增逻辑运算符 OR
+static Object* builtin_or(DynArray* args) {
+    if (da_count(args) == 0) {
+        return FALSE_OBJ;  // 空参数时返回 FALSE
+    }
+    
+    for (int i = 0; i < da_count(args); i++) {
+        Object** arg_ptr = (Object**)da_get(args, i);
+        if (!arg_ptr) {
+            continue;
+        }
+        
+        Object* arg = *arg_ptr;
+        
+        // 检查参数是否为真值
+        if (arg != FALSE_OBJ && arg != NULL_OBJ) {
+            if (arg->type == OBJ_NUMBER && ((NumberObject*)arg)->value != 0) {
+                return TRUE_OBJ;
+            }
+            if (arg->type == OBJ_STRING && strlen(((StringObject*)arg)->value) > 0) {
+                return TRUE_OBJ;
+            }
+            if (arg->type == OBJ_BOOLEAN && ((BooleanObject*)arg)->value) {
+                return TRUE_OBJ;
+            }
+        }
+    }
+    
+    return FALSE_OBJ;  // 所有参数都为假值
+}
+
+// 新增逻辑运算符 NOT
+static Object* builtin_not(DynArray* args) {
+    if (da_count(args) != 1) {
+        return create_error("wrong number of arguments. got=%d, want=1", da_count(args));
+    }
+    
+    Object** arg_ptr = (Object**)da_get(args, 0);
+    if (!arg_ptr) {
+        return TRUE_OBJ;  // NULL 参数视为假值
+    }
+    
+    Object* arg = *arg_ptr;
+    
+    // 检查参数是否为假值
+    if (arg == FALSE_OBJ || arg == NULL_OBJ) {
+        return TRUE_OBJ;
+    }
+    if (arg->type == OBJ_NUMBER && ((NumberObject*)arg)->value == 0) {
+        return TRUE_OBJ;
+    }
+    if (arg->type == OBJ_STRING && strlen(((StringObject*)arg)->value) == 0) {
+        return TRUE_OBJ;
+    }
+    
+    return FALSE_OBJ;  // 参数为真值
+}
+
 static char* object_to_string(Object* obj) {
     if (!obj) return strdup("NULL");
     
@@ -313,12 +400,14 @@ static Object* builtin_print(DynArray* args) {
 }
 
 void register_builtins(Environment* env) {
+    // 算术运算符
     env_set(env, "+", create_builtin(builtin_add));
     env_set(env, "-", create_builtin(builtin_sub));
     env_set(env, "*", create_builtin(builtin_mul));
     env_set(env, "/", create_builtin(builtin_div));
-    env_set(env, "%", create_builtin(builtin_mod));  // 新增取模运算符
+    env_set(env, "%", create_builtin(builtin_mod));
     
+    // 比较运算符
     env_set(env, "=", create_builtin(builtin_eq));
     env_set(env, "!=", create_builtin(builtin_ne));
     env_set(env, ">", create_builtin(builtin_gt));
@@ -326,10 +415,18 @@ void register_builtins(Environment* env) {
     env_set(env, ">=", create_builtin(builtin_gte));
     env_set(env, "<=", create_builtin(builtin_lte));
     
+    // 逻辑运算符 - 新增
+    env_set(env, "AND", create_builtin(builtin_and));
+    env_set(env, "OR", create_builtin(builtin_or));
+    env_set(env, "NOT", create_builtin(builtin_not));
+    
+    // 字符串操作
     env_set(env, "CONCAT", create_builtin(builtin_concat));
     
+    // 输入输出
     env_set(env, "PRINT", create_builtin(builtin_print));
     
+    // 常量
     env_set(env, "NULL", NULL_OBJ);
     env_set(env, "TRUE", TRUE_OBJ);
     env_set(env, "FALSE", FALSE_OBJ);
