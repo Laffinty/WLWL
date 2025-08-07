@@ -125,28 +125,52 @@ Object* eval(ASTNode* node, Environment* env) {
                     }
                 }
             }
-            return result;
+            return result ? result : NULL_OBJ;
+        }
+        // 新增语句块执行逻辑
+        case NODE_BLOCK_EXPRESSION: {
+            Object* result = NULL;
+            for (int i = 0; i < da_count(node->block_expr.statements); i++) {
+                ASTNode** stmt_ptr = (ASTNode**)da_get(node->block_expr.statements, i);
+                if (stmt_ptr) {
+                    result = eval(*stmt_ptr, env);
+                    if (result && IS_ERROR(result)) {
+                        return result;
+                    }
+                    // 检查循环控制语句
+                    if (result && (IS_BREAK(result) || IS_CONTINUE(result))) {
+                        return result;
+                    }
+                }
+            }
+            return result ? result : NULL_OBJ;
         }
         case NODE_LET_STATEMENT: {
             Object* val = eval(node->let_stmt.value, env);
             if (IS_ERROR(val)) {
                 return val;
             }
-            return env_define(env, node->let_stmt.name->identifier.value, val, false);
+            Object* result = env_define(env, node->let_stmt.name->identifier.value, val, false);
+            // 如果是错误，返回错误；否则返回定义的值
+            return IS_ERROR(result) ? result : val;
         }
         case NODE_VAR_STATEMENT: {
             Object* val = eval(node->var_stmt.value, env);
             if (IS_ERROR(val)) {
                 return val;
             }
-            return env_define(env, node->var_stmt.name->identifier.value, val, true);
+            Object* result = env_define(env, node->var_stmt.name->identifier.value, val, true);
+            // 如果是错误，返回错误；否则返回定义的值
+            return IS_ERROR(result) ? result : val;
         }
         case NODE_SET_STATEMENT: {
             Object* val = eval(node->set_stmt.value, env);
             if (IS_ERROR(val)) {
                 return val;
             }
-            return env_assign(env, node->set_stmt.name->identifier.value, val);
+            Object* result = env_assign(env, node->set_stmt.name->identifier.value, val);
+            // 如果是错误，返回错误；否则返回赋值的值
+            return IS_ERROR(result) ? result : val;
         }
         case NODE_EXPRESSION_STATEMENT:
             return eval(node->expr_stmt.expression, env);
@@ -227,7 +251,7 @@ Object* eval(ASTNode* node, Environment* env) {
             return NULL_OBJ;
         }
         
-        // === 新增循环语句执行逻辑 ===
+        // === 循环语句执行逻辑 ===
         
         case NODE_WHILE_EXPRESSION: {
             Object* result = NULL_OBJ;

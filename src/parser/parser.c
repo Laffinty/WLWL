@@ -244,6 +244,9 @@ static ASTNode* parse_expression_statement(Parser* p) {
     return stmt;
 }
 
+// 新增解析语句块的函数声明
+static ASTNode* parse_block_expression(Parser* p);
+
 static ASTNode* parse_expression(Parser* p) {
     ASTNode* left = NULL;
     
@@ -284,6 +287,25 @@ static ASTNode* parse_expression(Parser* p) {
         case TOKEN_LBRACKET:
             left = parse_array_literal(p);
             break;
+        case TOKEN_LPAREN:
+            left = parse_block_expression(p);
+            break;
+        // 允许在表达式上下文中使用语句
+        case TOKEN_VAR:
+            left = parse_var_statement(p);
+            break;
+        case TOKEN_LET:
+            left = parse_let_statement(p);
+            break;
+        case TOKEN_SET:
+            left = parse_set_statement(p);
+            break;
+        case TOKEN_BREAK:
+            left = parse_break_statement(p);
+            break;
+        case TOKEN_CONTINUE:
+            left = parse_continue_statement(p);
+            break;
         default:
             char error_msg[256];
             snprintf(error_msg, sizeof(error_msg), 
@@ -305,7 +327,6 @@ static ASTNode* parse_identifier(Parser* p) {
     node->type = NODE_IDENTIFIER;
     node->identifier.value = strdup(p->current_token.literal);
     return node;
-}
 }
 
 static ASTNode* parse_number_literal(Parser* p) {
@@ -700,6 +721,38 @@ static ASTNode* parse_break_statement(Parser* p) {
     return node;
 }
 
+static ASTNode* parse_block_expression(Parser* p) {
+    // 解析语句块：(stmt1; stmt2; ...)
+    ASTNode* block = (ASTNode*)malloc(sizeof(ASTNode));
+    block->type = NODE_BLOCK_EXPRESSION;
+    block->block_expr.statements = da_create(sizeof(ASTNode*));
+    
+    // 当前token已经是左括号，直接跳过
+    next_token(p);
+    
+    // 如果直接遇到右括号，返回空块
+    if (current_token_is(p, TOKEN_RPAREN)) {
+        return block;
+    }
+    
+    // 解析语句块中的语句
+    while (!current_token_is(p, TOKEN_RPAREN) && !current_token_is(p, TOKEN_EOF)) {
+        ASTNode* stmt = parse_statement(p);
+        if (stmt != NULL) {
+            da_push(block->block_expr.statements, &stmt);
+        }
+        
+        next_token(p);
+        
+        // 跳过分号
+        if (current_token_is(p, TOKEN_SEMICOLON)) {
+            next_token(p);
+        }
+    }
+    
+    return block;
+}
+
 static ASTNode* parse_continue_statement(Parser* p) {
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     node->type = NODE_CONTINUE_STATEMENT;
@@ -709,3 +762,4 @@ static ASTNode* parse_continue_statement(Parser* p) {
     }
     
     return node;
+}

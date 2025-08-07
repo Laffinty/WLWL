@@ -21,8 +21,9 @@ typedef enum {
     NODE_COND_BRANCH,
     
     NODE_ARRAY_LITERAL,
+    NODE_BLOCK_EXPRESSION,  // 新增语句块类型
     
-    // 新增循环相关节点
+    // 循环相关节点
     NODE_WHILE_EXPRESSION,
     NODE_FOR_EXPRESSION,
     NODE_FOREACH_EXPRESSION,
@@ -95,7 +96,12 @@ typedef struct {
     DynArray* elements;
 } ArrayLiteralNode;
 
-// 新增循环节点结构
+// 新增语句块节点结构
+typedef struct {
+    DynArray* statements;
+} BlockExpressionNode;
+
+// 循环节点结构
 typedef struct {
     struct ASTNode* condition;
     struct ASTNode* body;
@@ -139,8 +145,9 @@ typedef struct ASTNode {
         CondExpressionNode      cond_expr;
         CondBranchNode          cond_branch;
         ArrayLiteralNode        array_literal;
+        BlockExpressionNode     block_expr;  // 新增语句块联合体成员
         
-        // 新增循环节点联合体成员
+        // 循环节点联合体成员
         WhileExpressionNode     while_expr;
         ForExpressionNode       for_expr;
         ForeachExpressionNode   foreach_expr;

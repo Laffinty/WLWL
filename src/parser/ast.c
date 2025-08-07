@@ -73,7 +73,17 @@ void free_ast_node(ASTNode *node) {
             }
             da_free(node->array_literal.elements);
             break;
-        // 新增循环节点释放逻辑
+        // 新增语句块节点释放逻辑
+        case NODE_BLOCK_EXPRESSION:
+            for (int i = 0; i < da_count(node->block_expr.statements); i++) {
+                ASTNode** stmt_ptr = (ASTNode**)da_get(node->block_expr.statements, i);
+                if (stmt_ptr) {
+                    free_ast_node(*stmt_ptr);
+                }
+            }
+            da_free(node->block_expr.statements);
+            break;
+        // 循环节点释放逻辑
         case NODE_WHILE_EXPRESSION:
             free_ast_node(node->while_expr.condition);
             free_ast_node(node->while_expr.body);
