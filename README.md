@@ -41,6 +41,28 @@ IF(>(x, 0), PRINT("Positive"), PRINT("Not positive"));
 
 // 多分支条件
 COND([>(x, 0), "positive"], [<(x, 0), "negative"], [TRUE, "zero"]);
+
+// 循环语句
+WHILE(<(i, 5), (
+    PRINT("i =", i);
+    SET(i, +(i, 1));
+));
+
+FOR(VAR(j, 0), <(j, 3), SET(j, +(j, 1)), (
+    PRINT("j =", j);
+));
+
+FOREACH(item, [1, 2, 3], (
+    PRINT("item =", item);
+));
+
+// 循环控制
+WHILE(<(k, 10), (
+    IF(=(k, 5), BREAK);
+    IF(=(%(k, 2), 0), CONTINUE);
+    PRINT("k =", k);
+    SET(k, +(k, 1));
+));
 ```
 
 ## 示例
@@ -54,6 +76,13 @@ PRINT(CONCAT("Circle area: ", area));
 IF(>(area, 50), 
    PRINT("Large circle"), 
    PRINT("Small circle"));
+
+// 循环示例
+VAR(count, 0);
+WHILE(<(count, 5), (
+    PRINT("Count:", count);
+    SET(count, +(count, 1));
+));
 ```
 
 执行：
@@ -68,9 +97,12 @@ build/wlwl.exe test.wl
 - 语法分析 (Parser) 
 - 基础数据类型 (Number, String, Boolean, Null)
 - 变量系统 (LET, VAR, SET)
-- 算术运算 (+, -, *, /, 支持多参数)
+- 算术运算 (+, -, *, /, %, 支持多参数)
 - 比较运算 (=, !=, >, <, >=, <=)
 - 条件语句 (IF, COND)
+- **循环结构 (WHILE, FOR, FOREACH)** ⭐️ 新增
+- **循环控制 (BREAK, CONTINUE)** ⭐️ 新增
+- **语句块 `(stmt1; stmt2; ...)`** ⭐️ 新增
 - 字符串操作 (CONCAT)
 - 基础I/O (PRINT)
 - 运行时环境和求值器
@@ -78,10 +110,15 @@ build/wlwl.exe test.wl
 
 🔄 开发中：
 - 用户函数定义 (FUN)
-- 循环结构 (WHILE, FOR)
 - 数组和对象类型
 - 面向对象特性
-- Web集成功能
+
+📋 计划中：
+- 类定义和继承 (CLASS, NEW, SUPER)
+- Web集成功能 (HTML, CSS, DOM)
+- 模块系统 (IMPORT, EXPORT)
+- 异常处理 (TRY, CATCH)
+- 标准库完善
 
 ## 构建要求
 
