@@ -450,14 +450,17 @@ static ASTNode* parse_cond_expression(Parser* p) {
         return NULL;
     }
     
-    while (!peek_token_is(p, TOKEN_RPAREN) && !peek_token_is(p, TOKEN_EOF)) {
-        if (!expect_peek(p, TOKEN_LBRACKET)) {
+    // 解析 COND 分支
+    while (!current_token_is(p, TOKEN_RPAREN) && !current_token_is(p, TOKEN_EOF)) {
+        // 期望左括号 (
+        if (!expect_peek(p, TOKEN_LPAREN)) {
             break;
         }
         
         ASTNode* branch = (ASTNode*)malloc(sizeof(ASTNode));
         branch->type = NODE_COND_BRANCH;
         
+        // 解析条件
         next_token(p);
         branch->cond_branch.condition = parse_expression(p);
         if (!branch->cond_branch.condition) {
@@ -465,12 +468,14 @@ static ASTNode* parse_cond_expression(Parser* p) {
             break;
         }
         
+        // 期望逗号
         if (!expect_peek(p, TOKEN_COMMA)) {
             free_ast_node(branch->cond_branch.condition);
             free(branch);
             break;
         }
         
+        // 解析值表达式
         next_token(p);
         branch->cond_branch.expression = parse_expression(p);
         if (!branch->cond_branch.expression) {
@@ -479,16 +484,18 @@ static ASTNode* parse_cond_expression(Parser* p) {
             break;
         }
         
-        if (!expect_peek(p, TOKEN_RBRACKET)) {
+        // 期望右括号 )
+        if (!expect_peek(p, TOKEN_RPAREN)) {
             free_ast_node(branch);
             break;
         }
         
         da_push(node->cond_expr.branches, &branch);
         
+        // 检查是否有更多分支
         if (peek_token_is(p, TOKEN_COMMA)) {
             next_token(p);
-        } else {
+        } else if (peek_token_is(p, TOKEN_RPAREN)) {
             break;
         }
     }
@@ -506,26 +513,30 @@ static ASTNode* parse_array_literal(Parser* p) {
     node->type = NODE_ARRAY_LITERAL;
     node->array_literal.elements = da_create(sizeof(ASTNode*));
     
+    // 当前 token 是 '[', 检查下一个 token
     if (peek_token_is(p, TOKEN_RBRACKET)) {
-        next_token(p);
-        return node;
+        next_token(p);  // 移动到 ']'
+        return node;  // 返回空数组
     }
     
-    next_token(p);
+    // 解析第一个元素
+    next_token(p);  // 移动到第一个元素
     ASTNode* elem = parse_expression(p);
     if (elem) {
         da_push(node->array_literal.elements, &elem);
     }
     
+    // 解析剩余元素
     while (peek_token_is(p, TOKEN_COMMA)) {
-        next_token(p);
-        next_token(p);
+        next_token(p);  // 跳过逗号
+        next_token(p);  // 移动到下一个元素
         elem = parse_expression(p);
         if (elem) {
             da_push(node->array_literal.elements, &elem);
         }
     }
     
+    // 期望右括号 ']'
     if (!expect_peek(p, TOKEN_RBRACKET)) {
         free_ast_node(node);
         return NULL;
