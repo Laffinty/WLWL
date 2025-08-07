@@ -119,7 +119,6 @@ Object* eval(ASTNode* node, Environment* env) {
                     if (result && IS_ERROR(result)) {
                         return result;
                     }
-                    // 检查循环控制语句，在程序级别也需要传播
                     if (result && (IS_BREAK(result) || IS_CONTINUE(result))) {
                         return result;
                     }
@@ -127,31 +126,36 @@ Object* eval(ASTNode* node, Environment* env) {
             }
             return result ? result : NULL_OBJ;
         }
-        // 新增语句块执行逻辑
+        
         case NODE_BLOCK_EXPRESSION: {
+            Environment* block_env = create_enclosed_environment(env);
             Object* result = NULL;
+            
             for (int i = 0; i < da_count(node->block_expr.statements); i++) {
                 ASTNode** stmt_ptr = (ASTNode**)da_get(node->block_expr.statements, i);
                 if (stmt_ptr) {
-                    result = eval(*stmt_ptr, env);
+                    result = eval(*stmt_ptr, block_env);
                     if (result && IS_ERROR(result)) {
+                        free_environment(block_env);
                         return result;
                     }
-                    // 检查循环控制语句
                     if (result && (IS_BREAK(result) || IS_CONTINUE(result))) {
+                        free_environment(block_env);
                         return result;
                     }
                 }
             }
+            
+            free_environment(block_env);
             return result ? result : NULL_OBJ;
         }
+        
         case NODE_LET_STATEMENT: {
             Object* val = eval(node->let_stmt.value, env);
             if (IS_ERROR(val)) {
                 return val;
             }
             Object* result = env_define(env, node->let_stmt.name->identifier.value, val, false);
-            // 如果是错误，返回错误；否则返回定义的值
             return IS_ERROR(result) ? result : val;
         }
         case NODE_VAR_STATEMENT: {
@@ -160,7 +164,6 @@ Object* eval(ASTNode* node, Environment* env) {
                 return val;
             }
             Object* result = env_define(env, node->var_stmt.name->identifier.value, val, true);
-            // 如果是错误，返回错误；否则返回定义的值
             return IS_ERROR(result) ? result : val;
         }
         case NODE_SET_STATEMENT: {
@@ -169,7 +172,6 @@ Object* eval(ASTNode* node, Environment* env) {
                 return val;
             }
             Object* result = env_assign(env, node->set_stmt.name->identifier.value, val);
-            // 如果是错误，返回错误；否则返回赋值的值
             return IS_ERROR(result) ? result : val;
         }
         case NODE_EXPRESSION_STATEMENT:
@@ -251,8 +253,6 @@ Object* eval(ASTNode* node, Environment* env) {
             return NULL_OBJ;
         }
         
-        // === 循环语句执行逻辑 ===
-        
         case NODE_WHILE_EXPRESSION: {
             Object* result = NULL_OBJ;
             
@@ -266,18 +266,20 @@ Object* eval(ASTNode* node, Environment* env) {
                     break;
                 }
                 
-                result = eval(node->while_expr.body, env);
+                Environment* loop_env = create_enclosed_environment(env);
+                result = eval(node->while_expr.body, loop_env);
+                free_environment(loop_env);
+                
                 if (IS_ERROR(result)) {
                     return result;
                 }
                 
-                // 处理循环控制语句
                 if (IS_BREAK(result)) {
-                    result = NULL_OBJ;  // break退出循环，返回null
+                    result = NULL_OBJ;
                     break;
                 }
                 if (IS_CONTINUE(result)) {
-                    result = NULL_OBJ;  // continue继续下一次迭代
+                    result = NULL_OBJ;
                     continue;
                 }
             }
@@ -286,22 +288,19 @@ Object* eval(ASTNode* node, Environment* env) {
         }
         
         case NODE_FOR_EXPRESSION: {
-            // 创建新的作用域用于for循环
-            Environment* loop_env = create_enclosed_environment(env);
+            Environment* for_env = create_enclosed_environment(env);
             Object* result = NULL_OBJ;
             
-            // 执行初始化表达式
-            Object* init_result = eval(node->for_expr.init, loop_env);
+            Object* init_result = eval(node->for_expr.init, for_env);
             if (IS_ERROR(init_result)) {
-                free_environment(loop_env);
+                free_environment(for_env);
                 return init_result;
             }
             
             while (true) {
-                // 检查条件
-                Object* condition = eval(node->for_expr.condition, loop_env);
+                Object* condition = eval(node->for_expr.condition, for_env);
                 if (IS_ERROR(condition)) {
-                    free_environment(loop_env);
+                    free_environment(for_env);
                     return condition;
                 }
                 
@@ -309,48 +308,42 @@ Object* eval(ASTNode* node, Environment* env) {
                     break;
                 }
                 
-                // 执行循环体
+                Environment* loop_env = create_enclosed_environment(for_env);
                 result = eval(node->for_expr.body, loop_env);
+                free_environment(loop_env);
+                
                 if (IS_ERROR(result)) {
-                    free_environment(loop_env);
+                    free_environment(for_env);
                     return result;
                 }
                 
-                // 处理循环控制语句
                 if (IS_BREAK(result)) {
                     result = NULL_OBJ;
                     break;
                 }
                 if (IS_CONTINUE(result)) {
                     result = NULL_OBJ;
-                    // 继续执行步进语句
                 }
                 
-                // 执行步进表达式
-                Object* step_result = eval(node->for_expr.step, loop_env);
+                Object* step_result = eval(node->for_expr.step, for_env);
                 if (IS_ERROR(step_result)) {
-                    free_environment(loop_env);
+                    free_environment(for_env);
                     return step_result;
                 }
             }
             
-            free_environment(loop_env);
+            free_environment(for_env);
             return result;
         }
         
         case NODE_FOREACH_EXPRESSION: {
-            // FOREACH暂时简化实现 - 仅处理数组字面量
             Object* iterable = eval(node->foreach_expr.iterable, env);
             if (IS_ERROR(iterable)) {
                 return iterable;
             }
             
-            // 创建新的作用域
-            Environment* loop_env = create_enclosed_environment(env);
             Object* result = NULL_OBJ;
             
-            // 简化版本：如果是数组字面量，我们遍历其元素
-            // 实际实现中需要更复杂的迭代器支持
             if (node->foreach_expr.iterable->type == NODE_ARRAY_LITERAL) {
                 DynArray* elements = node->foreach_expr.iterable->array_literal.elements;
                 
@@ -359,21 +352,19 @@ Object* eval(ASTNode* node, Environment* env) {
                     if (elem_ptr) {
                         Object* elem_value = eval(*elem_ptr, env);
                         if (IS_ERROR(elem_value)) {
-                            free_environment(loop_env);
                             return elem_value;
                         }
                         
-                        // 设置循环变量
+                        Environment* loop_env = create_enclosed_environment(env);
                         env_define(loop_env, node->foreach_expr.var_name->identifier.value, elem_value, false);
                         
-                        // 执行循环体
                         result = eval(node->foreach_expr.body, loop_env);
+                        free_environment(loop_env);
+                        
                         if (IS_ERROR(result)) {
-                            free_environment(loop_env);
                             return result;
                         }
                         
-                        // 处理循环控制语句
                         if (IS_BREAK(result)) {
                             result = NULL_OBJ;
                             break;
@@ -385,11 +376,9 @@ Object* eval(ASTNode* node, Environment* env) {
                     }
                 }
             } else {
-                free_environment(loop_env);
                 return create_error("FOREACH currently only supports array literals");
             }
             
-            free_environment(loop_env);
             return result;
         }
         
